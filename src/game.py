@@ -8,7 +8,7 @@ class Game:
         self.font = pygame.font.SysFont('monospace', 18, bold=True)
         self.selected_piece = None
         self.current_player = 1
-        self.move_count = 1
+        self.move_count = 0
 
     def piece_selected(self):
         return self.selected_piece != None
@@ -35,7 +35,7 @@ class Game:
         self.current_player = 1 if self.current_player == 2 else 2
         self.move_count+=1 
 
-        if self.move_count % 2 ==0:
+        if self.move_count % 3 ==0:
             self.board.reset_en_passant_board()
 
     def move_piece(self, pr,pf):
@@ -45,20 +45,17 @@ class Game:
         new_tile = tiles[pr][pf]
         r,f = current_piece.rank, current_piece.file
 
-        print(r, f, "->", pr, pf)
         
         #check if piece is moved
         if pr == r and pf == f:
             return False 
         
         #--TODO-- check if legal move
-        print(current_piece.legal_moves(self.board))
         if (pr,pf) in current_piece.legal_moves(self.board):
         #change older tile's piece to None
             #En Passant 
             if isinstance(current_piece, Pawn):
                 if (pr - current_piece.dir, pf) == current_piece.en_passant_tile:
-                    print("enPassant possible")
                     self.board.tiles[pr - current_piece.dir][pf].set_en_passant()                                
 
             tiles[r][f].piece_moved()
@@ -70,9 +67,24 @@ class Game:
     def deselect(self):
         self.selected_piece = None
 
+    def _draw_highlights(self,sqrs, display):
+        highligh_display = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
+        for i,j in sqrs:
+            color = (0,0,0,90)
+            hrect = (j*TSIZE + (TSIZE/2), i*TSIZE + TSIZE / 2)
+                
+            if self.board.tiles[i][j].has_piece():
+                color = (0,0,0,70)
+                pygame.draw.circle(highligh_display,color,hrect,50,5)
+            else:
+                pygame.draw.circle(highligh_display,color,hrect,10)
+
+        display.blit(highligh_display,(0,0))
+
+    def _legal_piece_moves(self):
+        return self.selected_piece.legal_moves(self.board)
+    
     def _draw_board(self, display):
-        blk = "#f0c39c"
-        wht = "#783c07"
         for row in range(ROWS):
             for col in range(COLS):
                 # color

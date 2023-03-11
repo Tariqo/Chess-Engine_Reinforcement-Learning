@@ -28,6 +28,9 @@ class Main:
             pygame.display.update()
             self.game._draw_board(display)
             self.game._draw_pieces(display)
+            if self.game.piece_selected():
+                self.game._draw_highlights(self.game._legal_piece_moves(),self.screen)
+
 
     def _event_handler(self):
         for event in pygame.event.get():
@@ -42,16 +45,14 @@ class Main:
                 my, mx = pygame.mouse.get_pos()[0]//TSIZE,pygame.mouse.get_pos()[1]//TSIZE
                 #check if selected piece 
                 if self.game.piece_selected():
-                    print("piece selected: (", mx,my, ")")
                     if self.game.move_piece(mx,my):
-                        print("piece moved: (", mx,my, ")")
                         self.game.update_game()
                         return True
                     else:
                         self.game.deselect()
                 #select (or drag) a piece to move
                 else:
-                    print("select piece: (", mx,my, ")")
+
                     #check if current player's turn
                     #check if clicked piece 
                     #check if legal move

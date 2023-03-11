@@ -26,6 +26,7 @@ class Piece:
     
     def moved(self):
         self._moved = True
+        self.legals.clear()
 
     def legal_moves(self,board):
         pass     
@@ -39,10 +40,18 @@ class Pawn(Piece):
         sq = 2
         if not self._moved:
             sq = 3
-        self.legals = [(self.rank + (i*self.dir),self.file) for i in range(1, sq) if not board.tiles[self.rank + (i*self.dir)][self.file].has_piece()]
+        for i in range(1, sq):
+            if self.rank + (i*self.dir) < 0 or self.rank + (i*self.dir) >= COLS :
+                continue
+            if not board.tiles[self.rank + (i*self.dir)][self.file].has_piece():
+                self.legals.append((self.rank + (i*self.dir),self.file))
+
+
         #--TODO-- eat right or left
         diags = [(self.rank + (1*self.dir), self.file + 1),(self.rank + (1*self.dir), self.file - 1)]
         for t in diags:
+            if t[0] < 0 or t[0] >= ROWS or t[1] < 0 or t[1] >= COLS:
+                continue
             tile =board.tiles[t[0]][t[1]]
             if tile.has_piece():
                 if tile.piece.color != self.color:
@@ -50,16 +59,35 @@ class Pawn(Piece):
             elif tile.can_en_passant():
                 self.legals.append(t)
 
-        print(self.legals)                
         return self.legals
     def promote(self):
         pass
 
 class King(Piece):
     def __init__(self, color, rank = 0, file= 0):
-        self.castle_left = False
-        self.castle_right = False
+        self.castle_left = True
+        self.castle_right = True
         super().__init__( rank , file,'king', color, 9999.9, 'bK' if color == 'black' else 'wK')
+
+    def legal_moves(self, board):
+        possible_moves = [(self.rank + i, self.file + j) for i,j in [(0,1),(1,0),(1,1),(-1,0),(-1,-1),(0,-1),(1,-1),(-1,1)]]
+        for m in possible_moves:
+            if m[0] >= 0 and m[0] < ROWS and m[1] >= 0 and m[1] < COLS:
+                tile =board.tiles[m[0]][m[1]]
+                if tile.has_piece():
+                    if tile.piece.color != self.color:
+                        self.legals.append(m)
+                else:
+                        self.legals.append(m)
+        #castling
+        if self._moved:
+            self.castle_left = False
+            self.castle_right= False
+        
+        #castle left
+        if self.castle_left:
+            pass
+        return self.legals
 
 class Queen(Piece):
     def __init__(self, color, rank = 0, file= 0):

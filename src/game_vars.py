@@ -4,6 +4,14 @@ import os
 white = 'white'
 black = 'black'
 
+#color schemes
+blk = "#769656"
+wht = "#eeeed2"
+
+blk = "#6b95bb"
+wht = "#c9dcff"
+
+
 # sprite locations
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGE_DIR = os.path.join(BASE_DIR, 'img')

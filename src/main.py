@@ -39,7 +39,23 @@ class Main:
                 pygame.quit()
                 quit()
             if event.type == pygame.MOUSEBUTTONDOWN: 
-                pass
+                my, mx = pygame.mouse.get_pos()[0]//TSIZE,pygame.mouse.get_pos()[1]//TSIZE
+                #check if selected piece 
+                if self.game.piece_selected():
+                    print("piece selected: (", mx,my, ")")
+                    if self.game.move_piece(mx,my):
+                        print("piece moved: (", mx,my, ")")
+                        self.game.update_game()
+                        return True
+                    else:
+                        self.game.deselect()
+                #select (or drag) a piece to move
+                else:
+                    print("select piece: (", mx,my, ")")
+                    #check if current player's turn
+                    #check if clicked piece 
+                    #check if legal move
+                    self.game.select_piece(mx,my)                                            
         
     def _start_the_game(slef):
         # Do the job here !

@@ -67,6 +67,9 @@ class King(Piece):
     def __init__(self, color, rank = 0, file= 0):
         self.castle_left = True
         self.castle_right = True
+        self.in_check = False
+        self.castle_left_tile = (0,0)
+        self.castle_right_tile = (0,0)
         super().__init__( rank , file,'king', color, 9999.9, 'bK' if color == 'black' else 'wK')
 
     def legal_moves(self, board):
@@ -83,11 +86,35 @@ class King(Piece):
         if self._moved:
             self.castle_left = False
             self.castle_right= False
-        
+            
         #castle left
         if self.castle_left:
-            pass
+            piece_files = [(self.rank, self.file - i) for i in range(1,4)]
+            for i,j in piece_files:
+                if not board.tiles[i][j].has_piece():
+                    self.add_castle_left()
+        #castle_right
+        if self.castle_right:        
+            piece_files = [(self.rank, self.file + i) for i in range(1,3)]
+            for i,j in piece_files:
+                if not board.tiles[i][j].has_piece():
+                    self.add_castle_right()
         return self.legals
+    
+    def can_castle_left(self):
+        return self.castle_left
+    
+    def can_castle_right(self):
+        return self.castle_right
+    
+    def add_castle_left(self):
+        self.legals.append((self.rank, self.file - 2))
+        self.castle_left_tile=(self.rank, self.file - 2)
+
+    def add_castle_right(self):
+        self.legals.append((self.rank, self.file + 2))
+        self.castle_right_tile=(self.rank, self.file + 2)
+
 
 class Queen(Piece):
     def __init__(self, color, rank = 0, file= 0):
@@ -96,7 +123,8 @@ class Queen(Piece):
 class Rook(Piece):
     def __init__(self, color, rank = 0, file= 0):
         super().__init__( rank , file,'rook', color, 5.0, 'bR' if color == 'black' else 'wR')
-
+    def legal_moves(self, board):
+        pass
 class Bishop(Piece):
     def __init__(self, color, rank = 0, file= 0):
         super().__init__( rank , file,'bishop', color, 3.0, 'bB' if color == 'black' else 'wB')

@@ -50,14 +50,22 @@ class Game:
         if pr == r and pf == f:
             return False 
         
-        #--TODO-- check if legal move
         if (pr,pf) in current_piece.legal_moves(self.board):
         #change older tile's piece to None
+            
+            
             #En Passant 
             if isinstance(current_piece, Pawn):
                 if (pr - current_piece.dir, pf) == current_piece.en_passant_tile:
                     self.board.tiles[pr - current_piece.dir][pf].set_en_passant()                                
+            
+            
+            if isinstance(current_piece, King):
+                #--TODO-- castle left
+                #--TODO-- castle right
+                pass
 
+            #move piece
             tiles[r][f].piece_moved()
             current_piece.rank, current_piece.file = pr, pf
             current_piece.moved()
@@ -113,7 +121,12 @@ class Game:
                     # blit
                     display.blit(lbl, lbl_pos)
         
-        
+    def _castle_left(self):
+        pass
+    
+    def _castle_right(self):
+        pass
+
     def _draw_pieces(self, display):
         for row in range(ROWS):
             for col in range(COLS):

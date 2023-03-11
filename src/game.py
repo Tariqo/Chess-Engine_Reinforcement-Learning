@@ -62,7 +62,19 @@ class Game:
             
             if isinstance(current_piece, King):
                 #--TODO-- castle left
+                if (pr, pf) == current_piece.castle_left_tile:
+                    tiles[pr][pf - 2].piece.file = pf + 1
+                    tiles[pr][pf + 1].set_piece(tiles[pr][pf - 2].piece)
+                    tiles[pr][pf - 2].piece.moved()
+                    tiles[pr][pf - 2].piece_moved()
+
                 #--TODO-- castle right
+                if (pr, pf) == current_piece.castle_right_tile:
+                    tiles[pr][pf + 1].piece.file = pf - 1
+                    tiles[pr][pf - 1].set_piece(tiles[pr][pf + 1].piece)
+                    tiles[pr][pf + 1].piece.moved()
+                    tiles[pr][pf + 1].piece_moved()
+
                 pass
 
             #move piece

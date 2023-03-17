@@ -11,12 +11,11 @@ class Piece:
         self.value = value * self.color_val
         self.dir = self.color_val
         self.legals = []
-        self._moved = False
+        self.moved = False
         self.sprite_load = pygame.image.load(os.path.join(IMAGE_DIR, sprt_name + '.png'))
         self.sprite = pygame.transform.scale(self.sprite_load, (80 , 80))
     # def _load_sprite(self, sprt_name):
     #     self.sprite = 
-    #     print(self.sprite)
     
     def draw(self, display):
         piece_img = self.sprite
@@ -24,12 +23,13 @@ class Piece:
         img_rect = piece_img.get_rect(center=img_center)
         display.blit(piece_img,img_rect)
     
-    def moved(self):
-        self._moved = True
+    def _moved(self):
+        self.moved = True
         self.legals.clear()
 
     def legal_moves(self,board):
         pass     
+    
 
 
 class Pawn(Piece):
@@ -38,7 +38,7 @@ class Pawn(Piece):
         self.en_passant_tile = (self.rank + 1 * self.dir,self.file)
     def legal_moves(self, board):
         sq = 2
-        if not self._moved:
+        if not self.moved:
             sq = 3
         for i in range(1, sq):
             if self.rank + (i*self.dir) < 0 or self.rank + (i*self.dir) >= COLS :
@@ -56,7 +56,7 @@ class Pawn(Piece):
             if tile.has_piece():
                 if tile.piece.color != self.color:
                     self.legals.append(t)
-            elif tile.can_en_passant():
+            elif tile.can_en_passant(self.dir):
                 self.legals.append(t)
 
         return self.legals
@@ -83,7 +83,7 @@ class King(Piece):
                 else:
                         self.legals.append(m)
         #castling
-        if self._moved:
+        if self.moved:
             self.castle_left = False
             self.castle_right= False
             
@@ -132,3 +132,15 @@ class Bishop(Piece):
 class Knight(Piece):
     def __init__(self, color, rank = 0, file= 0):
         super().__init__( rank , file,'knight', color, 3.0, 'bN' if color == 'black' else 'wN')
+        
+    def legal_moves(self, board):
+        possible_moves = [(self.rank + i, self.file + j) for i,j in [(-2,1),(-1,2),(1,2),(2,1),(2,-1),(1,-2),(-1,-2),(-2,-1)]]
+        for m in possible_moves:
+            if m[0] >= 0 and m[0] < ROWS and m[1] >= 0 and m[1] < COLS:
+                tile =board.tiles[m[0]][m[1]]
+                if tile.has_piece():
+                    if tile.piece.color != self.color:
+                        self.legals.append(m)
+                else:
+                        self.legals.append(m)
+        return self.legals

@@ -56,7 +56,7 @@ class Main:
                     #check if current player's turn
                     #check if clicked piece 
                     #check if legal move
-                    self.game.select_piece(mx,my)                                            
+                    self.game.select_piece(mx,my)      
         
     def _start_the_game(slef):
         # Do the job here !

@@ -57,22 +57,22 @@ class Game:
             #En Passant 
             if isinstance(current_piece, Pawn):
                 if (pr - current_piece.dir, pf) == current_piece.en_passant_tile:
-                    self.board.tiles[pr - current_piece.dir][pf].set_en_passant()                                
-            
+                    tiles[pr - current_piece.dir][pf].set_en_passant(-current_piece.dir) 
+                #if we move to an en passant square we kill the other pawn
+                elif tiles[pr][pf].can_en_passant(current_piece.dir):
+                    tiles[pr - current_piece.dir][pf].piece_moved()
             
             if isinstance(current_piece, King):
                 #--TODO-- castle left
                 if (pr, pf) == current_piece.castle_left_tile:
                     tiles[pr][pf - 2].piece.file = pf + 1
                     tiles[pr][pf + 1].set_piece(tiles[pr][pf - 2].piece)
-                    tiles[pr][pf - 2].piece.moved()
                     tiles[pr][pf - 2].piece_moved()
 
                 #--TODO-- castle right
                 if (pr, pf) == current_piece.castle_right_tile:
                     tiles[pr][pf + 1].piece.file = pf - 1
                     tiles[pr][pf - 1].set_piece(tiles[pr][pf + 1].piece)
-                    tiles[pr][pf + 1].piece.moved()
                     tiles[pr][pf + 1].piece_moved()
 
                 pass
@@ -80,7 +80,7 @@ class Game:
             #move piece
             tiles[r][f].piece_moved()
             current_piece.rank, current_piece.file = pr, pf
-            current_piece.moved()
+            current_piece._moved()
             new_tile.set_piece(current_piece)
             return True
         return False

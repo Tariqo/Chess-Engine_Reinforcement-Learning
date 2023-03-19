@@ -1,14 +1,18 @@
 
 from game_vars import *
 from board import *
+from animation import Animate
 
 class Game:
-    def __init__(self):
+    def __init__(self, screen):
         self.board = Board()
         self.font = pygame.font.SysFont('monospace', 18, bold=True)
         self.selected_piece = None
         self.current_player = 1
         self.move_count = 0
+        self.screen = screen
+        self.animate = Animate()
+
 
     def piece_selected(self):
         return self.selected_piece != None
@@ -24,7 +28,9 @@ class Game:
         if tile.has_piece():
             if self.legal_selection(tile.piece):
                 self.selected_piece = tile.piece
+                self._draw_highlights(self.screen)
                 return True
+            
         return False
         
     def legal_selection(self, piece):
@@ -37,7 +43,13 @@ class Game:
 
         if self.move_count % 3 ==0:
             self.board.reset_en_passant_board()
+        self.board.check_for_checkmate()
 
+    def update_screen(self):
+        self._draw_board(self.screen)
+        self._draw_pieces(self.screen)
+
+    
     def move_piece(self, pr,pf):
         tiles = self.board.tiles
         current_piece = self.selected_piece
@@ -51,11 +63,20 @@ class Game:
             return False 
         
         if (pr,pf) in current_piece.legal_moves(self.board):
-        #change older tile's piece to None
             
-            
-            #En Passant 
+            #move piece
+            tiles[r][f].piece_moved()
+            current_piece.rank, current_piece.file = pr, pf
+            new_tile.set_piece(current_piece)
+            self.board.last_move = current_piece
+        
+
             if isinstance(current_piece, Pawn):
+            
+                #check for promotion 
+                current_piece.promote(self.board)
+                
+                #En Passant 
                 if (pr - current_piece.dir, pf) == current_piece.en_passant_tile:
                     tiles[pr - current_piece.dir][pf].set_en_passant(-current_piece.dir) 
                 #if we move to an en passant square we kill the other pawn
@@ -68,32 +89,32 @@ class Game:
                     tiles[pr][pf - 2].piece.file = pf + 1
                     tiles[pr][pf + 1].set_piece(tiles[pr][pf - 2].piece)
                     tiles[pr][pf - 2].piece_moved()
+                    self.board.last_move = tiles[pr][pf + 1].piece
 
                 #--TODO-- castle right
                 if (pr, pf) == current_piece.castle_right_tile:
                     tiles[pr][pf + 1].piece.file = pf - 1
                     tiles[pr][pf - 1].set_piece(tiles[pr][pf + 1].piece)
                     tiles[pr][pf + 1].piece_moved()
+                    self.board.last_move = tiles[pr][pf - 1].piece
 
-                pass
+            if self.board.black_check or self.board.black_check: 
+                self.board.black_check, self.board.black_check = False, False
 
-            #move piece
-            tiles[r][f].piece_moved()
-            current_piece.rank, current_piece.file = pr, pf
-            current_piece._moved()
-            new_tile.set_piece(current_piece)
+            self.board.check_for_check()
             return True
         return False
     def deselect(self):
         self.selected_piece = None
 
-    def _draw_highlights(self,sqrs, display):
+    def _draw_highlights(self, display):
         highligh_display = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
+        sqrs = self._legal_piece_moves()
         for i,j in sqrs:
             color = (0,0,0,90)
             hrect = (j*TSIZE + (TSIZE/2), i*TSIZE + TSIZE / 2)
                 
-            if self.board.tiles[i][j].has_piece():
+            if self.board.tiles[i][j].has_piece() and self.board.tiles[i][j].piece.color != ("black" if self._black_to_move() else "white"):
                 color = (0,0,0,70)
                 pygame.draw.circle(highligh_display,color,hrect,50,5)
             else:
@@ -144,6 +165,8 @@ class Game:
             for col in range(COLS):
                 if self.board.tiles[row][col].has_piece():
                     piece = self.board.tiles[row][col].piece
+                    if self.animate.held and self.animate.piece == piece:
+                        continue
                     piece.draw(display)
                     
             

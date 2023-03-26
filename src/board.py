@@ -186,3 +186,12 @@ class Board:
                         return False
         print("stalemate, DRAW!")
         return True
+    
+    def get_legal_moves(self,color):
+        pieces = []
+        for rank in self.tiles:
+            for tile in rank:
+                if tile.has_piece() and tile.piece.color == color:
+                    if len(tile.piece.legal_moves(self)) > 0:
+                        pieces.append((tile.piece,tile.piece.legal_moves(self)))
+        return pieces

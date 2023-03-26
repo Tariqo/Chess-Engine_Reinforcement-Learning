@@ -2,6 +2,7 @@
 from game_vars import *
 from board import *
 from animation import Animate
+from engine import Engine
 
 class Game:
     def __init__(self, screen):
@@ -13,6 +14,7 @@ class Game:
         self.move_count_b = 0
         self.screen = screen
         self.animate = Animate()
+        self.engine = Engine("black")
 
 
     def piece_selected(self):
@@ -23,6 +25,7 @@ class Game:
     
     def _black_to_move(self):
         return self.current_player == 2
+    
     #select piece based on rank and file
     def select_piece(self, pr,pf):
         tile = self.board.tiles[pr][pf]
@@ -52,6 +55,15 @@ class Game:
 
         self.board.check_for_stalemate()
         self.current_player = 1 if self.current_player == 2 else 2
+        if self.current_player == 2:
+            self.engine_move()
+            self.update_game()
+            self.update_screen()
+
+    def engine_move(self):
+        piece, move = self.engine.choose_move(self.board)
+        self.selected_piece = piece
+        return self.move_piece(move[0],move[1])
 
     def update_screen(self):
         self._draw_board(self.screen)
@@ -93,14 +105,14 @@ class Game:
             
             if isinstance(current_piece, King):
                 # castle left
-                if (pr, pf) == current_piece.castle_left_tile:
+                if (pr, pf) == current_piece.castle_left_tile and current_piece.can_castle_left():
                     tiles[pr][pf - 2].piece.file = pf + 1
                     tiles[pr][pf + 1].set_piece(tiles[pr][pf - 2].piece)
                     tiles[pr][pf - 2].piece_moved()
                     self.board.last_move = tiles[pr][pf + 1].piece
 
                 # castle right
-                if (pr, pf) == current_piece.castle_right_tile:
+                if (pr, pf) == current_piece.castle_right_tile and current_piece.can_castle_right():
                     tiles[pr][pf + 1].piece.file = pf - 1
                     tiles[pr][pf - 1].set_piece(tiles[pr][pf + 1].piece)
                     tiles[pr][pf + 1].piece_moved()

@@ -9,7 +9,8 @@ class Game:
         self.font = pygame.font.SysFont('monospace', 18, bold=True)
         self.selected_piece = None
         self.current_player = 1
-        self.move_count = 0
+        self.move_count_w = 0
+        self.move_count_b = 0
         self.screen = screen
         self.animate = Animate()
 
@@ -38,12 +39,19 @@ class Game:
 
     def update_game(self):
         self.selected_piece = None
-        self.current_player = 1 if self.current_player == 2 else 2
-        self.move_count+=1 
+        if self.current_player == 1:
+            self.move_count_w +=1
+        else:
+            self.move_count_b +=1
+        #reset white
+        if (self.move_count_b % 2 == 0 and self.move_count_w % 2 == 0) or (self.move_count_b % 2 == 1 and self.move_count_w % 2 == 1):
+            self.board.reset_en_passant_board(1)
+        #reset black
+        elif (self.move_count_b % 2 == 0 and self.move_count_w % 2 == 1) or (self.move_count_b % 2 == 1 and self.move_count_w % 2 == 0):
+            self.board.reset_en_passant_board(-1)
 
-        if self.move_count % 3 ==0:
-            self.board.reset_en_passant_board()
-        self.board.check_for_checkmate()
+        self.board.check_for_stalemate()
+        self.current_player = 1 if self.current_player == 2 else 2
 
     def update_screen(self):
         self._draw_board(self.screen)
@@ -84,14 +92,14 @@ class Game:
                     tiles[pr - current_piece.dir][pf].piece_moved()
             
             if isinstance(current_piece, King):
-                #--TODO-- castle left
+                # castle left
                 if (pr, pf) == current_piece.castle_left_tile:
                     tiles[pr][pf - 2].piece.file = pf + 1
                     tiles[pr][pf + 1].set_piece(tiles[pr][pf - 2].piece)
                     tiles[pr][pf - 2].piece_moved()
                     self.board.last_move = tiles[pr][pf + 1].piece
 
-                #--TODO-- castle right
+                # castle right
                 if (pr, pf) == current_piece.castle_right_tile:
                     tiles[pr][pf + 1].piece.file = pf - 1
                     tiles[pr][pf - 1].set_piece(tiles[pr][pf + 1].piece)
@@ -120,6 +128,18 @@ class Game:
             else:
                 pygame.draw.circle(highligh_display,color,hrect,10)
 
+        display.blit(highligh_display,(0,0))
+
+    def draw_hover(self, display , r,f):
+        highligh_display = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
+        hrect = r*TSIZE,f*TSIZE,TSIZE, TSIZE
+        pygame.draw.rect(highligh_display, (0,0,0,90), hrect, 3)
+        display.blit(highligh_display,(0,0))
+
+    def draw_select(self,display,r,f):
+        highligh_display = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
+        hrect = r*TSIZE,f*TSIZE,TSIZE, TSIZE
+        pygame.draw.rect(highligh_display, (0,204,255,50), hrect)
         display.blit(highligh_display,(0,0))
 
     def _legal_piece_moves(self):

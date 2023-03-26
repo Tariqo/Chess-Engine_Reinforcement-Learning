@@ -28,10 +28,12 @@ class Board:
             for col in range(COLS):
                 self.tiles[row][col] = Tile(row, col)
 
-    def reset_en_passant_board(self):
+    def reset_en_passant_board(self, color):
         for i in self.tiles:
             for j in i:
-                j.reset_passant()
+                if color == j.en_passant_color:
+                    j.reset_passant()
+                
 
     def _add_pieces(self, color):
         row_pawn, row_other = (6, 7) if color == 'white' else (1, 0)
@@ -78,6 +80,7 @@ class Board:
             if (self.black_k.rank, self.black_k.file) in self.last_move.legal_moves_pre_check(self):
                 print("black in check")
                 self.black_check = True
+        self.check_for_checkmate()
 
     def check_white_k_in_check(self):
         for row in self.tiles:
@@ -158,6 +161,7 @@ class Board:
             else:
                 self.undo_move(r,f,lr, lf)
                 return True
+            
     def get_in_check(self, color):
         return  not self.white_check if color == "white" else not self.black_check
     
@@ -169,5 +173,16 @@ class Board:
                     if len(tile.piece.legal_moves(self)) >0:
                         print("not checkmate")
                         return False
-        print("checkmate!")
+        print("checkmate#")
+        return True
+    
+    def check_for_stalemate(self):
+        check_mate_color = "white" if self.last_move.color == "black" else "black"
+        for rank in self.tiles:
+            for tile in rank:
+                if tile.has_piece() and tile.piece.color == check_mate_color:
+                    if len(tile.piece.legal_moves(self)) >0:
+                        print("not stalemate")
+                        return False
+        print("stalemate, DRAW!")
         return True

@@ -56,6 +56,8 @@ class Main:
                     #check if legal move
                     self.game.update_screen()
                     if self.game.select_piece(mx,my):
+                        self.game.draw_select(self.screen, my,mx)
+                        self.game.draw_hover(self.screen,my,mx)
                         self.game.animate.org_RF(mx,my)  
                         self.game.animate.hold(self.game.selected_piece)  
 
@@ -65,7 +67,10 @@ class Main:
                 if self.game.animate.held:
                     self.game.animate.update_mouse(mx,my)
                     self.game.update_screen()
+                    self.game.draw_select(self.screen, self.game.selected_piece.file,self.game.selected_piece.rank)
+
                     self.game._draw_highlights(self.screen)
+                    self.game.draw_hover(self.screen,mx//TSIZE,my//TSIZE)
                     self.game.animate.draw(self.screen)
 
 

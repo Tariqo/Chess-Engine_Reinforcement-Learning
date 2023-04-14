@@ -17,7 +17,13 @@ class Tile:
         self.piece = piece
 
     def piece_moved(self):
-        self.piece._moved()
+        if self.piece:
+            self.piece._moved()
+        self.piece = None
+
+    def piece_moved_try(self):
+        if self.piece:
+            self.piece._moved_try()
         self.piece = None
     
     def can_en_passant(self, color):

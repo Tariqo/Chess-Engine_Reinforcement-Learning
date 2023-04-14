@@ -15,7 +15,7 @@ class Animate:
     def draw(self, surface):
         piece_img = self.piece.sprite
         img_center = (self.mX, self.mY)
-        print((self.mX, self.mY))
+        # print((self.mX, self.mY))
         img_rect = piece_img.get_rect(center=img_center)
         surface.blit(piece_img,img_rect)
 

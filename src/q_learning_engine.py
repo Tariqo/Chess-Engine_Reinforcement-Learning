@@ -5,9 +5,9 @@ import time
 import chess
 import chess.engine
 import tensorflow as tf
-
+from board import Board
 class DQNEngine:
-    def __init__(self, color, learning_rate=0.001, discount_factor=0.99, exploration_rate=1.0, exploration_decay=0.9995, use_target_network=True):
+    def __init__(self, color, learning_rate=0.001, discount_factor=0.99, exploration_rate=0.3, exploration_decay=0.9995, use_target_network=True):
         self.color = color
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
@@ -32,7 +32,7 @@ class DQNEngine:
         model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate), loss='mse')
         return model
 
-    def choose_move(self, board):
+    def choose_move(self, board: Board):
         legal_board_moves = board.get_legal_moves_engine(self.color)
         state = self._board_to_array(board)
 
@@ -52,9 +52,8 @@ class DQNEngine:
         piece = board.tiles[pR][pF].piece 
 
         reward = self._get_reward(board,piece, move)
-        board.engine_try_move(pR, pF, move[0], move[1])
-        next_state = self._board_to_array(board)
-        board.engine_undo_move(pR, pF, move[0], move[1])
+        temp_board = board.try_move(piece, board.tiles[move[0]][move[1]])
+        next_state = self._board_to_array(temp_board)
 
         
         if self.use_target_network:
@@ -91,10 +90,9 @@ class DQNEngine:
                 arr[r, f, 5] = self.color == board.turn
         return arr
 
-    def _get_reward(self, board, piece, move):
-        pR, pF = piece.rank, piece.file
+    def _get_reward(self, board : Board, piece, move):
         reward = 0
-        captured_piece = board.tiles[move[0]][move[1]]
+        captured_piece = board.tiles[move[0]][move[1]].piece
 
         symbol = piece.name[0].upper()
         if piece.name == 'knight':
@@ -102,20 +100,19 @@ class DQNEngine:
         if captured_piece is not None:
             reward += self.piece_values[symbol]
 
-        board.engine_try_move(pR, pF, move[0], move[1])
+        if board.last_move != None:
+            temp_board = board.try_move(piece, board.tiles[move[0]][move[1]])
 
-        is_check = board.is_in_check(self.color)
-        is_checkmate = board.is_checkmate(self.color)
-        is_stalemate = board.check_for_stalemate()
-        board.engine_undo_move(pR, pF, move[0], move[1])
+            is_check = temp_board.is_in_check(self.color)
+            is_checkmate = temp_board.is_checkmate(self.color)
+            is_stalemate = temp_board.check_for_stalemate()
 
-
-        if is_checkmate:
-            reward += 100
-        elif is_stalemate:
-            reward += 10
-        elif is_check:
-            reward += 0.5
+            if is_checkmate:
+                reward += 100
+            elif is_stalemate:
+                reward += 10
+            elif is_check:
+                reward += 0.5
 
         return reward
 

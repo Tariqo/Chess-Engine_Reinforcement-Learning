@@ -23,9 +23,10 @@ class Game:
         self.engine2 = Engine("black")
         self.move_log = ""
         self.general_move_cnt = 0
-        self.simulation_string = "P6343 N0625 P6545 N0122 P6646 P1030 B7566 N2537 B7263 N3756 P6454 R0001 P6151 P1131 B6633 P1626 N7664 N2243 P6242 P1424 P6747 P2636 B3344 K0414 B4453 P1232 P5443 R0100 P4737 B0516 N7150 B0211 R7776 K1404 Q7362 P3040 R7666 N5635 P4536 K0414 B6341 P1525 P4231 P3242 B4114 Q0330 B1441 N3523 N5071 B1627 Q6252 N2331 Q5261 P1323 N6472"
+        self.simulation_string = "P6151 P1020 P6040 P1636 P6343 P1525 N7152 R0010 P6656 R1000 B7236 P1737 P6242 K0415 B3663 P1121 P6454 P1222 P5141 P2232 K7464 Q0304 N5231 P2535 B6352 B0211 P4030 P3747 N7655 P2031 R7050 Q0402 P4332 N0625 B5234 B1122 Q7374 P3142 R5070 P4757 B7557 B2240 Q7475 B4051 N5576 N0120 P3222 R0001 P5646 R0747 B3425 R0100 B2507 Q0211 P5444 R0010 Q7572 K1506 Q7254 B5140 P3021 N2041 Q5436 K0607 R7050 R4746 N7655 B4031 Q3646 P3545 N5543 B0516 R7770 K0717 Q4626 K1726 R5055 Q1120 R5553 B1625 P2110 B2536 R5350 B3625 K6473 P4252 P2213 K2617 R5030 N4153 N4322 P4555 P1000 B2507 R7060 N5365 K7374 N6557 Q0002 B0716 N2201 P5262 N0120 B3122 Q0211 K1706 N2041 K0605 Q1112 K0515 R3036 P1424 R3635 P2435 Q1203 P3545 R6020 B1605 P6747 K1526 Q0336 N5736 R2022 B0523 P4434 P6272 R2272 B2334 N4122 K2616 R7262 P5565 K7465 P4555 R6252 B3425 K6575 K1626 R5242 K2617 N2210 B2552 R4243 N3615 P1303 P5565 R4341 K1726 R4151 K2627 Q0321 B5225 R5161 N1523 Q2132 K2717 R6151 K1706 Q3236 K0617 R5111 B2516 Q3663 N2335 R1141 N3547 Q6364 B1605 R4161 K1706 Q6473 B0527 Q7364 N4766 N1002 N6654 K7565 N5435 K6566 K0617 R6160 B2772 Q6475 K1726 Q7520 K2636 Q2023 N3554 K6657 K3637 Q2345 B7263 Q4575 K3727 N0223 B6341 R6040 B4174 R4060 N5462 R6010 N6250 R1012 B7447 R1222 K2737 R2220 K3726 N2304 K2637 Q7545 N5031 Q4567 N3150 Q6761 K3736 Q6171 K3637 Q7151 N5031 Q5133 B4736 N0416"
         self.moves = self.simulation_string.split(" ")
         self.log_file = os.path.isfile("move_log.log")
+        self.current_piece_legal_moves = []
                                        
     def piece_selected(self):
         return self.selected_piece != None
@@ -63,7 +64,8 @@ class Game:
         elif (self.move_count_b % 2 == 0 and self.move_count_w % 2 == 1) or (self.move_count_b % 2 == 1 and self.move_count_w % 2 == 0):
             self.board.reset_en_passant_board(-1)
 
-        if self.board.check_for_stalemate():
+        
+        if self.board.check_for_game_end():
             self.save_model()
         self.current_player = 1 if self.current_player == 2 else 2
         self.board.set_turn(self.current_player)
@@ -72,21 +74,24 @@ class Game:
         # time.sleep(0.9)
         if self.current_player == 1:
             if not self.engine_move():
-                print("Motherfucking white")
-            self.update_screen()
-            self.update_game()
+                print("Motherfucking white made an illegal move")
+            else:
+                self.update_screen()
+                self.update_game()
         if self.current_player == 2:
             if not self.engine2_move():
-                print("Motherfucking black")
-            self.update_screen()
-            self.update_game()
+                print("Motherfucking black made an illegal move")
+            else:
+                self.update_screen()
+                self.update_game()
 
     def make_engine_play_black(self):
         if self.current_player == 2:
             if not self.engine2_move():
-                print("Motherfucking black")
-            self.update_screen()
-            self.update_game()
+                print("Motherfucking black made an illegal move")
+            else:
+                self.update_screen()
+                self.update_game()
     
     def simulate_game(self):
         if self.general_move_cnt < len(self.moves):
@@ -124,107 +129,25 @@ class Game:
 
     
     def move_piece(self, pr,pf):
-        self.board.black_check, self.board.white_check = False, False
-        tiles = self.board.tiles
-        current_piece = self.selected_piece
-   
-        new_tile = tiles[pr][pf]
-        taken_piece_name = ""
-        if new_tile.has_piece():
-            taken_piece_name = new_tile.piece.name
-            # print(new_tile.piece.name,new_tile.piece.color, new_tile.piece.rank, new_tile.piece.file)
-        r,f = current_piece.rank, current_piece.file
+        move_log_string = ""
+        r,f = self.selected_piece.rank, self.selected_piece.file
+        piece_moved = self.board.move_piece(self.selected_piece, self.board.tiles[pr][pf])
 
-        
-        #check if piece is moved
-        if pr == r and pf == f:
-            return False 
-        current_piece.legals.clear()
-        legalities = current_piece.legal_moves(self.board)
-        if (pr,pf) in legalities:
-            # print(current_piece.name,current_piece.color,legalities)
-            #move piece
-            if tiles[pr][pf].has_piece():
-                print(tiles[pr][pf].piece.name, "Taken", self.board.white_check, self.board.black_check)
-                del(tiles[pr][pf].piece)
-            current_piece.rank, current_piece.file = pr, pf
-            tiles[pr][pf].set_piece(self.board.tiles[r][f].piece)
-            self.board.last_move = self.board.tiles[r][f].piece
-            # print(tiles[pr][pf].piece.name)
-            tiles[r][f].piece_moved()
-
-            if isinstance(current_piece, Pawn):
-            
-                #check for promotion 
-                current_piece.promote(self.board)
-                
-                #En Passant 
-                if (pr - current_piece.dir, pf) == current_piece.en_passant_tile and not current_piece.moved:
-                    tiles[pr - current_piece.dir][pf].set_en_passant(-current_piece.dir) 
-                #if we move to an en passant square we kill the other pawn
-                elif tiles[pr][pf].can_en_passant(current_piece.dir):
-                    tiles[pr - current_piece.dir][pf].piece_moved()
-                    
-            
-            if isinstance(current_piece, King):
-                # castle left
-                if (pr, pf) == current_piece.castle_left_tile and current_piece.can_castle_left():
-                    tiles[pr][pf - 2].piece.file = pf + 1
-                    tiles[pr][pf + 1].set_piece(tiles[pr][pf - 2].piece)
-                    tiles[pr][pf - 2].piece_moved()
-                    self.board.last_move = tiles[pr][pf + 1].piece
-
-                # castle right
-                if (pr, pf) == current_piece.castle_right_tile and current_piece.can_castle_right():
-                    tiles[pr][pf + 1].piece.file = pf - 1
-                    tiles[pr][pf - 1].set_piece(tiles[pr][pf + 1].piece)
-                    tiles[pr][pf + 1].piece_moved()
-                    self.board.last_move = tiles[pr][pf - 1].piece
-            if isinstance(current_piece, Rook):
-                # Right Rook
-                if f == 7:
-                    king = self.find_king(current_piece.color)
-                    if king.can_castle_right():
-                        king.cant_castle_right()
-                # Left Rook
-                elif f == 0:
-                    king = self.find_king(current_piece.color)
-                    if king.can_castle_left():
-                        king.cant_castle_left()
-
-          
-
-            self.add_move_to_move_log(current_piece.name, taken_piece_name, r,f ,pr,pf)
-            tiles[r][f].set_piece(None)
-            self.board.last_move = self.board.tiles[pr][pf].piece
-
-            move_log_string = ""
+        if piece_moved:
             for i in self.board.tiles:
                 for j in i:
                     if not j.has_piece():
                         move_log_string += "--- "
-                        # print("---", end=" ")
                     else:
                         name = j.piece.name[0].upper() if j.piece.name != 'knight' else 'N'
-                        # print(j.piece.color[0].upper() + "-" + name, end=" ")
                         move_log_string += j.piece.color[0].upper() + "-" + name + " "
                 move_log_string+= "\n"
-                # print("\n ")
-            move_log_string+= "------------------------------------------------\n"
-            # print("------------------------------------------------")        
-            
+            move_log_string+= "------------------------------------------------\n"    
             self.log_to_file(move_log_string)
-            
-            if self.board.check_for_check():
-                self.save_model()
-            self.selected_piece = None
-            return True
-        else:
-            self.selected_piece = None
-            print(current_piece.rank, current_piece.file,current_piece.color ,current_piece.name, legalities)
-            exit()
-        return False
-    
+            self.add_move_to_move_log(self.selected_piece.name, r,f,pr,pf)
+
+        return piece_moved
+
     def log_to_file(self, move_log_string):
         if(self.log_file):
             with open("move_log.log", "a") as file: 
@@ -245,11 +168,9 @@ class Game:
     def deselect(self):
         self.selected_piece = None
 
-    def add_move_to_move_log(self, name, taken_piece_name,r,f, pr,pf ):
+    def add_move_to_move_log(self, name,r,f, pr,pf ):
         concat_string = ""
         p_name = name
-        if taken_piece_name != "":
-            concat_string += "x" + taken_piece_name 
         if p_name == "knight":
             p_name = "N"
         else:
@@ -291,7 +212,12 @@ class Game:
         display.blit(highligh_display,(0,0))
 
     def _legal_piece_moves(self):
-        return self.selected_piece.legal_moves(self.board)
+        if self.current_piece_legal_moves and self.animate.held:
+            return self.current_piece_legal_moves
+        else:
+            self.current_piece_legal_moves = self.board.piece_legal_moves(self.selected_piece).copy()
+            return self.current_piece_legal_moves
+            
     
     def _draw_board(self, display):
         for row in range(ROWS):
@@ -335,7 +261,11 @@ class Game:
                     piece = self.board.tiles[row][col].piece
                     if self.animate.held and self.animate.piece == piece:
                         continue
-                    piece.draw(display)
+                    sprite = pygame.image.load(os.path.join(IMAGE_DIR, piece.sprite + '.png'))
+                    piece_img = sprite
+                    img_center = piece.file * TSIZE + TSIZE // 2, piece.rank * TSIZE + TSIZE // 2
+                    img_rect = piece_img.get_rect(center=img_center)
+                    display.blit(piece_img,img_rect)
     
     def save_model(self):
         self.engine.save_model('QDN')

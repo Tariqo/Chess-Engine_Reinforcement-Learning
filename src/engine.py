@@ -8,12 +8,12 @@ class Engine:
         self.legal_moves = []
 
     def choose_move(self,board : Board):
-        legal_pieces = board.get_legal_moves(self.color)
+        legal_pieces = board.get_legal_moves_random(self.color)
 
 
-        piece,moves = legal_pieces[random.randint(0,len(legal_pieces)-1)]
+        piece,moves = random.choice(legal_pieces)
 
 
-        return piece,moves[random.randint(0, len(moves)-1)]
+        return piece, random.choice(moves)
     
 

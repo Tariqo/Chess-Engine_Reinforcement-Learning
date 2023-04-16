@@ -38,8 +38,9 @@ class Main:
         self.game._draw_board(display)
         self.game._draw_pieces(display)
         self.game.load_model()
-        # self._engine_play = True
-        self.simulate= True
+        self._engine_play = True
+        # self.simulate= True
+        # self.two_persons = True
         while running:
             if self._engine_play:
                 self.game.make_engine_play()
@@ -167,6 +168,7 @@ main = Main()
 if os.path.isfile("move_log.log"):
     os.remove("move_log.log")
 
+# main.run()
 try:
     main.run()
 except Exception as e:

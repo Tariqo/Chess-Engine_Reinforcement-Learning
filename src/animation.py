@@ -13,7 +13,7 @@ class Animate:
         self.col = 0
 
     def draw(self, surface):
-        piece_img = self.piece.sprite
+        piece_img =  pygame.image.load(os.path.join(IMAGE_DIR, self.piece.sprite + '.png'))
         img_center = (self.mX, self.mY)
         # print((self.mX, self.mY))
         img_rect = piece_img.get_rect(center=img_center)

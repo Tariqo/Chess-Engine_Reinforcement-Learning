@@ -231,3 +231,12 @@ class QLearningEngine:
             board.engine_try_move(pR, pF, move[0], move[1])
             prev_state = self._board_to_state(board)
             reward = self._
+    # for i in self.tiles:
+        #     for j in i:
+        #         if not j.has_piece():
+        #             print("---", end=" ")
+        #         else:
+        #             name = j.piece.name[0].upper() if j.piece.name != 'knight' else 'N'
+        #             print(j.piece.color[0].upper() + "-" + name, end=" ")
+        #     print("\n ")
+        # print("------------------------------------------------")        

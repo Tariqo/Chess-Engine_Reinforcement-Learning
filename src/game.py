@@ -223,7 +223,7 @@ class Game:
         for row in range(ROWS):
             for col in range(COLS):
                 # color
-                color = blk if (row + col) % 2 == 0 else wht
+                color = blk if (row + col) % 2 != 0 else wht
                 # rect
                 rect = (col * TSIZE, row * TSIZE, TSIZE, TSIZE)
                 # blit
@@ -241,7 +241,7 @@ class Game:
                 # col coordinates
                 if row == 7:
                     # color
-                    color = blk if (row + col) % 2 != 0 else wht
+                    color = blk if (row + col) % 2 == 0 else wht
                     # label
                     lbl = self.font.render(chr(97 + col), 1, color)
                     lbl_pos = (col * TSIZE + TSIZE - 20, HEIGHT - 20)

@@ -9,16 +9,24 @@ import copy
 
 class Board:
 
-    def __init__(self):
+    def __init__(self, testing = False):
         self.tiles = [[0, 0, 0, 0, 0, 0, 0, 0] for col in range(COLS)]
         self.last_move = None
         self._create()
-        self._add_pieces('white')
-        self.white_k = self.tiles[7][4].piece
-        self.white_check = False
-        self._add_pieces('black')
-        self.black_k = self.tiles[0][4].piece
-        self.black_check = False
+        if not testing:
+            self._add_pieces('white')
+            self.white_k = self.tiles[7][4].piece
+            self.white_check = False
+            self._add_pieces('black')
+            self.black_k = self.tiles[0][4].piece
+            self.white_check = False
+            self.black_check = False
+        else:
+            self.white_check = False
+            self.black_check = False
+            self.white_k = None
+            self.black_k = None
+
         self.try_move_piece = None
         self.engine_try_move_piece = None
         self.last_move_castle_left = False
@@ -35,18 +43,16 @@ class Board:
         self.dummy_eaten_piece = None
         self.demo_org_tile = [9,9]
         self.move_being_undone = False
+        self.black_attacking_sqrs = []
+        self.white_attacking_sqrs = []
 
-        # cnt = 0
-        # for row in self.tiles:
-        #     for sqr in row:
-        #         cnt +=1
+
     def set_turn(self, num):
         self.move_count += 1
         if num == 1:
             self.turn == 'white'
         else:
-            self.turn == 'black'
-             
+            self.turn == 'black'             
     def _create(self):
         for row in range(ROWS):
             for col in range(COLS):
@@ -210,7 +216,7 @@ class Board:
                     if mv[1] != piece.file and tile.piece.color != piece.color:
                         approved_moves.append(mv)
                 else:
-                    if mv[1] == piece.file:
+                    if mv[1] == piece.file and (not self.tiles[piece.rank + piece.dir][piece.file].has_piece()):
                         approved_moves.append(mv)
             #En Passant
             if isinstance(self.last_move, Pawn):
@@ -295,35 +301,6 @@ class Board:
 
         return temp_board
 
-
-    # def undo_move(self, piece, tile):
-    #     self.move_being_undone = True
-    #     move_was_undone = self.move_piece(piece, self.tiles[self.demo_org_tile[0]][self.demo_org_tile[1]])
-    #     # try:
-    #     # except Exception as E:
-    #     #     print(piece.color, piece.name, "from", "(",piece.rank, ",", piece.file, ")" , "to", "(",self.demo_org_tile[0], ",", self.demo_org_tile[1], ")" , "was: False")
-    #     #     exit(-1)
-    #     self.dummy_piece = None
-    #     self.demo_org_tile = [8,8]
-    #     self.demo_en_passant = False
-    #     self.demo_castle_left = False
-    #     self.demo_castle_right = False
-    #     self.dummy_eaten_piece = None
-    #     self.move_being_undone = False
-    #     # log_string = piece.color + " to play: " + "\n" + piece.color + " " + piece.name + " from (" + str(piece.rank)  + "," + str(piece.file) + ") to (" + str(tile.row) + "," + str(tile.col) + ") been undone:\n"
-    #     # for i in self.tiles:
-    #     #     for j in i:
-    #     #         if not j.has_piece():
-    #     #             log_string += "--- "
-    #     #         else:
-    #     #             name = j.piece.name[0].upper() if j.piece.name != 'knight' else 'N'
-    #     #             log_string += j.piece.color[0].upper() + "-" + name + " "
-    #     #     log_string+= "\n"
-    #     # log_string+= "------------------------------------------------\n"
-    #     # with open("move_try_log.log", "a") as file: 
-    #     #     file.write(log_string)
-
-
     def move_piece(self, piece : Piece, tile: Tile, demo = False, testing = False):
         if piece.rank == tile.row and piece.file == tile.col:
             return False
@@ -399,7 +376,8 @@ class Board:
                 tile.set_piece(piece)
                 self.tiles[r][f].set_piece(self.dummy_eaten_piece)
 
-
+            # if not testing:
+            #     self.update_attacked_squares(piece.color)
             return True
         
         return False
@@ -456,6 +434,9 @@ class Board:
         return False
 
     def check_white_k_in_check(self):
+        # if (self.white_k.rank, self.white_k.file) in self.black_attacking_sqrs and (not self.white_check):
+        #     return True
+        
         for row in self.tiles:
             for tile in row:
                 if tile.has_piece():
@@ -465,11 +446,28 @@ class Board:
         return False
 
     def check_black_k_in_check(self):
+        # if (self.black_k.rank, self.black_k.file) in self.white_attacking_sqrs and (not self.black_check):
+        #     return True
+        
         for row in self.tiles:
             for tile in row:
                 if tile.has_piece():
                     if tile.piece.color == "white":
                         if (self.black_k.rank, self.black_k.file) in self.piece_legal_moves(tile.piece, True):
-
+    
                             return True
         return False
+    #This doesns't check for pinned moves 
+    def update_attacked_squares(self, color):
+        attacked_sqrs = []
+        for row in self.tiles:
+            for tile in row:
+                if tile.has_piece():
+                    if tile.piece.color == color:
+                        piece_leg = self.piece_legal_moves(tile.piece, True)
+                        if len(piece_leg) > 0:
+                            attacked_sqrs.extend(piece_leg)
+        if color == 'black':
+            self.black_attacking_sqrs = attacked_sqrs
+        else:
+            self.white_attacking_sqrs = attacked_sqrs

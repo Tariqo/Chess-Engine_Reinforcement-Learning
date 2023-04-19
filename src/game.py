@@ -10,11 +10,15 @@ import time
 import os.path
 
 class Game:
-    def __init__(self, screen):
-        self.board = Board()
+    def __init__(self, screen, fen = ""):
+        if fen:
+            self.board = Board(fen=fen)
+            self.current_player = 1 if self.board.turn == 'white' else 2
+        else:
+            self.board = Board()
+            self.current_player = 1
         self.font = pygame.font.SysFont('monospace', 18, bold=True)
         self.selected_piece = None
-        self.current_player = 1
         self.move_count_w = 0
         self.move_count_b = 0
         self.screen = screen
@@ -25,7 +29,7 @@ class Game:
         self.general_move_cnt = 0
         self.simulation_string = "P6151 P1020 P6040 P1636 P6343 P1525 N7152 R0010 P6656 R1000 B7236 P1737 P6242 K0415 B3663 P1121 P6454 P1222 P5141 P2232 K7464 Q0304 N5231 P2535 B6352 B0211 P4030 P3747 N7655 P2031 R7050 Q0402 P4332 N0625 B5234 B1122 Q7374 P3142 R5070 P4757 B7557 B2240 Q7475 B4051 N5576 N0120 P3222 R0001 P5646 R0747 B3425 R0100 B2507 Q0211 P5444 R0010 Q7572 K1506 Q7254 B5140 P3021 N2041 Q5436 K0607 R7050 R4746 N7655 B4031 Q3646 P3545 N5543 B0516 R7770 K0717 Q4626 K1726 R5055 Q1120 R5553 B1625 P2110 B2536 R5350 B3625 K6473 P4252 P2213 K2617 R5030 N4153 N4322 P4555 P1000 B2507 R7060 N5365 K7374 N6557 Q0002 B0716 N2201 P5262 N0120 B3122 Q0211 K1706 N2041 K0605 Q1112 K0515 R3036 P1424 R3635 P2435 Q1203 P3545 R6020 B1605 P6747 K1526 Q0336 N5736 R2022 B0523 P4434 P6272 R2272 B2334 N4122 K2616 R7262 P5565 K7465 P4555 R6252 B3425 K6575 K1626 R5242 K2617 N2210 B2552 R4243 N3615 P1303 P5565 R4341 K1726 R4151 K2627 Q0321 B5225 R5161 N1523 Q2132 K2717 R6151 K1706 Q3236 K0617 R5111 B2516 Q3663 N2335 R1141 N3547 Q6364 B1605 R4161 K1706 Q6473 B0527 Q7364 N4766 N1002 N6654 K7565 N5435 K6566 K0617 R6160 B2772 Q6475 K1726 Q7520 K2636 Q2023 N3554 K6657 K3637 Q2345 B7263 Q4575 K3727 N0223 B6341 R6040 B4174 R4060 N5462 R6010 N6250 R1012 B7447 R1222 K2737 R2220 K3726 N2304 K2637 Q7545 N5031 Q4567 N3150 Q6761 K3736 Q6171 K3637 Q7151 N5031 Q5133 B4736 N0416"
         self.moves = self.simulation_string.split(" ")
-        self.log_file = os.path.isfile("move_log.log")
+        self.log_file = os.path.isfile("logs/move_log.out")
         self.current_piece_legal_moves = []
                                        
     def piece_selected(self):
@@ -69,7 +73,7 @@ class Game:
             self.save_model()
         self.current_player = 1 if self.current_player == 2 else 2
         self.board.set_turn(self.current_player)
-
+        print(self.board.save_to_FEN())
     def make_engine_play(self):
         # time.sleep(0.9)
         if self.current_player == 1:
@@ -150,11 +154,11 @@ class Game:
 
     def log_to_file(self, move_log_string):
         if(self.log_file):
-            with open("move_log.log", "a") as file: 
+            with open("logs/move_log.out", "a") as file: 
                 file.write(move_log_string)
 
         else:
-            with open("move_log.log", "w") as file: 
+            with open("logs/move_log.out", "w") as file: 
                 file.write(move_log_string)
 
 
@@ -180,7 +184,7 @@ class Game:
         # new_string = p_name + str(r) + str(f) + concat_string + chr(97 + pf) + str(ROWS - pr) + " "
         self.move_log += new_string
 
-        with open("Game.txt", "a") as file:
+        with open("logs/ghistory.out", "a") as file:
             file.write(new_string)
 
 
@@ -232,7 +236,7 @@ class Game:
                 # row coordinates
                 if col == 0:
                     # color
-                    color =  blk  if row % 2 != 0 else wht
+                    color =  wht  if row % 2 != 0 else blk
                     # label
                     lbl = self.font.render(str(ROWS-row), 1, color)
                     lbl_pos = (5, 5 + row * TSIZE)
@@ -269,7 +273,7 @@ class Game:
     
     def save_model(self):
         self.engine.save_model('QDN')
-        with open("Game.txt", "a") as file:
+        with open("logs/ghistory.out", "a") as file:
             file.write("\n")
         exit()
 
@@ -282,7 +286,7 @@ class Game:
 
     def save_q_table_after_game(self):
         self.engine.save_q_table('q_table.pickle')
-        with open("Game.txt", "a") as file:
+        with open("logs/ghistory.out", "a") as file:
             file.write("\n")
         exit()
 

@@ -160,40 +160,20 @@ class Main:
         menu.add.button('Play both', self.two_play)
         menu.add.button('Quit', pygame_menu.events.EXIT)
         return menu
+
 import logging
 
-LOG_FILENAME = 'logging_example.out'
+main = Main()
+LOG_FILENAME = 'logs/Main_logs.out'
 logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
 
-main = Main()
-if os.path.isfile("move_log.log"):
-    os.remove("move_log.log")
-
-# main.run()
+if os.path.isfile("logs/move_log.out"):
+    os.remove("logs/move_log.out")
 try:
     main.run()
 except Exception as e:
-    with open("Game.txt", "a") as file:
+    with open("logs/ghistory.out", "a") as file:
         file.write("--Error\n")
     print("main crashed. Error: %s", e)
     logging.exception('Got exception on main handler')    
     exit(-1)
-
-
-# import chess
-# import chess.engine
-
-
-# engine = chess.engine.SimpleEngine.popen_uci("path/to/stockfish")
-
-
-# board = chess.Board()
-
-
-# while not board.is_game_over():
-#     print(board)
-#     result = engine.play(board, chess.engine.Limit(time=2.0))
-#     board.push(result.move)
-
-
-# engine.quit()

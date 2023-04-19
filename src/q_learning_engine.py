@@ -104,7 +104,7 @@ class DQNEngine:
             temp_board = board.try_move(piece, board.tiles[move[0]][move[1]])
 
             is_check = temp_board.is_in_check(self.color)
-            is_checkmate = temp_board.is_checkmate(self.color)
+            is_checkmate = temp_board.is_checkmate()
             is_stalemate = temp_board.check_for_stalemate()
 
             if is_checkmate:
@@ -118,8 +118,6 @@ class DQNEngine:
 
     def save_model(self, filename):
         self.model.save(filename)
-        with open("model.json", "w") as file:
-            file.write(self.model.to_json())
 
 
     def load_model(self, filename):

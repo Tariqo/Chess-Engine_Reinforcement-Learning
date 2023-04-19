@@ -1,31 +1,42 @@
-import pygame
 import os
-from piece import *
-from game_vars import *
-from tile import *
 import copy
+import pygame
+from piece import Piece, Pawn, King, Queen, Rook, Bishop, Knight
+from game_vars import *
+from tile import Tile
 
 
 
 class Board:
 
-    def __init__(self, testing = False):
-        self.tiles = [[0, 0, 0, 0, 0, 0, 0, 0] for col in range(COLS)]
-        self.last_move = None
-        self._create()
-        if not testing:
-            self._add_pieces('white')
-            self.white_k = self.tiles[7][4].piece
-            self.white_check = False
-            self._add_pieces('black')
-            self.black_k = self.tiles[0][4].piece
-            self.white_check = False
-            self.black_check = False
-        else:
-            self.white_check = False
-            self.black_check = False
+    def __init__(self, testing = False, fen=""):
+        self.move_count = 0
+        self.turn = ""
+        if fen:
+            self.tiles = [[0, 0, 0, 0, 0, 0, 0, 0] for col in range(COLS)]
             self.white_k = None
             self.black_k = None
+            self.white_check = False
+            self.black_check = False
+            self.last_move = None
+            self.load_from_FEN(fen_string=fen)
+        else:
+            self.tiles = [[0, 0, 0, 0, 0, 0, 0, 0] for col in range(COLS)]
+            self.last_move = None
+            self._create()
+            if not testing:
+                self._add_pieces('white')
+                self.white_k = self.tiles[7][4].piece
+                self.white_check = False
+                self._add_pieces('black')
+                self.black_k = self.tiles[0][4].piece
+                self.white_check = False
+                self.black_check = False
+            else:
+                self.white_check = False
+                self.black_check = False
+                self.white_k = None
+                self.black_k = None
 
         self.try_move_piece = None
         self.engine_try_move_piece = None
@@ -33,8 +44,6 @@ class Board:
         self.last_move_castle_right = False
         self.last_move_castle_left_engine = False
         self.last_move_castle_right_engine = False
-        self.turn = ""
-        self.move_count = 0
         self.demo_en_passant = False
         self.demo_promotion = False
         self.demo_castle_left = False
@@ -46,13 +55,12 @@ class Board:
         self.black_attacking_sqrs = []
         self.white_attacking_sqrs = []
 
-
     def set_turn(self, num):
         self.move_count += 1
         if num == 1:
-            self.turn == 'white'
+            self.turn = 'white'
         else:
-            self.turn == 'black'             
+            self.turn = 'black'             
     def _create(self):
         for row in range(ROWS):
             for col in range(COLS):
@@ -62,8 +70,7 @@ class Board:
         for i in self.tiles:
             for j in i:
                 if color == j.en_passant_color:
-                    j.reset_passant()
-                
+                    j.reset_passant()                
 
     def _add_pieces(self, color):
         row_pawn, row_other = (6, 7) if color == 'white' else (1, 0)
@@ -98,7 +105,7 @@ class Board:
         self.tiles[row_other][4] = Tile(
             row_other, 4, King(color, row_other, 4))
 
-    def triggerPromotion(self, piece):
+    def trigger_Promotion(self, piece):
         color = piece.color
         r,f = piece.rank,piece.file
         return Queen(color, r, f)
@@ -113,20 +120,21 @@ class Board:
     def is_in_check(self, color):
         if color == 'white':
             return self.check_white_k_in_check()
-        else:
-            return self.check_black_k_in_check()
+        return self.check_black_k_in_check()
     
-    def is_checkmate(self,color):
+    def is_checkmate(self):
         return self.check_for_checkmate()
+    
     def check_for_game_end(self):
+        self.check_for_check()
         if self.check_for_checkmate():
             return True
         else:
             return self.check_for_stalemate()
         
 
-    def check_for_checkmate(self):
-        if self.last_move == None:
+    def check_for_checkmate(self,test = False):
+        if self.last_move is None:
             return False
         check_mate_color = "white" if self.last_move.color == "black" else "black"
         for rank in self.tiles:
@@ -136,18 +144,16 @@ class Board:
                         return False
                     
         if check_mate_color == 'black' and self.black_check:
-            print(self.last_move.color + " wins")
-
-            with open("winner.log", "a") as file:
-                file.write(self.last_move.color + " wins\n")
+            if not test:
+                print(self.last_move.color + " wins")
+                with open("logs/winner.out", "a") as file:
+                    file.write(self.last_move.color + " wins\n")
             return True
         elif check_mate_color == 'white' and self.white_check:
-
-            print(self.last_move.color + " wins")
-            with open("winner.log", "a") as file:
-                file.write(self.last_move.color + " wins\n")
-
-
+            if not test:        
+                print(self.last_move.color + " wins")
+                with open("logs/winner.out", "a") as file:
+                    file.write(self.last_move.color + " wins\n")
             return True
         return False    
     
@@ -169,13 +175,13 @@ class Board:
         
         if len(remaining_pieces_black) == len(remaining_pieces_white) and len(remaining_pieces_black) == 1:
             if demo:
-                with open("winner.log", "a") as file:
+                with open("logs/winner.out", "a") as file:
                     file.write("Stalemate\n")
                     print("stalemate")
             return True
         if stale_mate:
             if demo:
-                with open("winner.log", "a") as file:
+                with open("logs/winner.out", "a") as file:
                     file.write("Stalemate\n")
                     print("stalemate")
             return True
@@ -253,7 +259,7 @@ class Board:
                 approved_moves.append(piece.castle_right_tile)
 
         #queen, bishop or rook
-        elif isinstance(piece,Queen) or isinstance(piece,Bishop) or  isinstance(piece,Rook):
+        elif isinstance(piece, (Bishop, Queen, Rook)):
             for dir_moves in original_legal_move_list:
                 for mv in dir_moves:
                     tile = self.tiles[mv[0]][mv[1]]
@@ -261,15 +267,16 @@ class Board:
                         if tile.piece.color != piece.color:
                             approved_moves.append(mv)
                             break
-                        else:
-                            break
+                        break
                     else:
                         approved_moves.append(mv)
-        #if king is in check, we only allow moves that result in getting out of the check,
-        #as well as moves that don't cause a check
+        """
+        if king is in check, we only allow moves that result in getting out of the check,
+        as well as moves that don't cause a check
         
-        # we need to avoid recursive calls back so we skip this part if we are already in it
-        if not recursive:
+        -we need to avoid recursive calls back so we skip this part if we are already in it
+        """
+        if not recursive and king_piece is not None:
             legal_moves = []
             for mv in approved_moves:
                 #try the move
@@ -284,8 +291,7 @@ class Board:
     def king_in_check(self,piece:Piece):
         if piece.color == 'white':
             return self.check_white_k_in_check()
-        else:
-            return self.check_black_k_in_check()
+        return self.check_black_k_in_check()
         
     def try_move(self, piece: Piece, tile: Tile, who_called = ""):
             
@@ -324,7 +330,7 @@ class Board:
                         self.tiles[tile.row - piece.dir][tile.col].piece = None
                 #promotion
                 if (tile.row == 0 or  tile.row == 7) and not demo and not self.move_being_undone:
-                    piece = self.triggerPromotion(piece)
+                    piece = self.trigger_Promotion(piece)
 
             #castle
             if isinstance(piece, King):
@@ -381,47 +387,49 @@ class Board:
             return True
         
         return False
+    
     def update_castling(self):
-        king_piece = self.white_k if self.last_move == None or self.last_move.color == "black" else self.black_k
+        king_piece = self.white_k if self.last_move is None or self.last_move.color == "black" else self.black_k
         #if there are any pieces in between:
         #left 
-        if king_piece.can_castle_left():
-            piece_in_between = False
-            piece_files = [(king_piece.rank, king_piece.file - i) for i in range(1,4)]
-            for i,j in piece_files:
-                if self.tiles[i][j].has_piece():
-                    piece_in_between = True
-                    break
-            king_piece.blocking_left = piece_in_between
-        #right
-        if king_piece.can_castle_right():
-            piece_in_between = False
-            piece_files = [(king_piece.rank, king_piece.file + i) for i in range(1,3)]
-            for i,j in piece_files:
-                if self.tiles[i][j].has_piece():
-                    piece_in_between = True
-                    break
-            king_piece.blocking_right = piece_in_between
-        #if king is in check:
-        if king_piece.color == 'white':
-            if self.check_white_k_in_check():
-                king_piece.in_check()
-            else:
-                king_piece.not_in_check()
+        if king_piece is not None:
+            if king_piece.can_castle_left():
+                piece_in_between = False
+                piece_files = [(king_piece.rank, king_piece.file - i) for i in range(1,4)]
+                for i,j in piece_files:
+                    if self.tiles[i][j].has_piece():
+                        piece_in_between = True
+                        break
+                king_piece.blocking_left = piece_in_between
+            #right
+            if king_piece.can_castle_right():
+                piece_in_between = False
+                piece_files = [(king_piece.rank, king_piece.file + i) for i in range(1,3)]
+                for i,j in piece_files:
+                    if self.tiles[i][j].has_piece():
+                        piece_in_between = True
+                        break
+                king_piece.blocking_right = piece_in_between
+            #if king is in check:
+            if king_piece.color == 'white':
+                if self.check_white_k_in_check():
+                    king_piece.in_check()
+                else:
+                    king_piece.not_in_check()
 
-        if king_piece.color == 'black':
-            if self.check_black_k_in_check():
-                king_piece.in_check()
-            else:
-                king_piece.not_in_check()
+            if king_piece.color == 'black':
+                if self.check_black_k_in_check():
+                    king_piece.in_check()
+                else:
+                    king_piece.not_in_check()
 
-        #if the middle square is attacked
-        #left
-        if self.is_tile_attacked(king_piece.rank,king_piece.file-1, king_piece.color):
-            king_piece.blocking_left = True
-            
-        if self.is_tile_attacked(king_piece.rank,king_piece.file+1, king_piece.color):
-            king_piece.blocking_right = True
+            #if the middle square is attacked
+            #left
+            if self.is_tile_attacked(king_piece.rank,king_piece.file-1, king_piece.color):
+                king_piece.blocking_left = True
+                
+            if self.is_tile_attacked(king_piece.rank,king_piece.file+1, king_piece.color):
+                king_piece.blocking_right = True
 
 
     def is_tile_attacked(self,tile_r,tile_f,color):
@@ -471,3 +479,125 @@ class Board:
             self.black_attacking_sqrs = attacked_sqrs
         else:
             self.white_attacking_sqrs = attacked_sqrs
+    def save_to_FEN(self):
+        FEN_str = ""
+        for i in self.tiles:
+            rank_empties = 0
+            for tile in i:
+                if tile.has_piece():
+                    if rank_empties > 0:
+                        FEN_str += str(rank_empties)
+                        rank_empties = 0
+                    if tile.piece.color == "black":
+                        FEN_str += tile.piece.name[0].lower() if tile.piece.name != "knight" else 'n'
+                    else:
+                        FEN_str += tile.piece.name[0].upper() if tile.piece.name != "knight" else 'N'
+                else:
+                    rank_empties += 1
+                    if tile.col == 7:
+                        FEN_str += str(rank_empties)
+    
+            FEN_str +='/'
+        FEN_str += " " + self.turn[0] + " "
+        if self.white_k.can_castle_left():
+            FEN_str += "Q"
+        if self.white_k.can_castle_right():
+            FEN_str += "K"
+        if self.black_k.can_castle_left():
+            FEN_str += "q"
+        if self.black_k.can_castle_right():
+            FEN_str += "k"
+        if not (self.white_k.can_castle_left() or self.white_k.can_castle_right()
+                or self.black_k.can_castle_left() or self.black_k.can_castle_right()):
+            FEN_str += "-"
+        FEN_str += " "
+        print(self.last_move.name, self.last_move.color, self.last_move.rank - self.last_move.dir, self.last_move.file )
+        if self.last_move and isinstance(self.last_move, Pawn) and \
+          self.tiles[self.last_move.rank - self.last_move.dir][self.last_move.file].can_en_passant(-self.last_move.dir):
+            FEN_str += chr(97 + self.last_move.file) + str(ROWS - self.last_move.rank ) + " "
+        else:
+            FEN_str += "- "
+        FEN_str += str((self.move_count + 1) // 2) + " "
+        FEN_str += str(self.move_count) 
+        return FEN_str
+
+    def load_from_FEN(self, fen_string):
+   
+        # Split the FEN string into its components
+        fen_parts = fen_string.split()
+        # Load the piece positions onto the board
+        row = 0
+        col = 0
+        for char in fen_parts[0]:
+            if char == "/":
+                row += 1
+                col = 0
+            elif char.isdigit():
+                for i in range(int(char)):
+                    self.tiles[row][col] = Tile(row, col)
+                    col += 1
+                
+            else:
+                if char == "p":
+                    self.tiles[row][col] = Tile(row, col, Pawn("black", row, col))
+                elif char == "n":
+                    self.tiles[row][col] = Tile(row, col, Knight("black", row, col))
+                elif char == "b":
+                    self.tiles[row][col] = Tile(row, col, Bishop("black", row, col))
+                elif char == "r":
+                    self.tiles[row][col] = Tile(row, col, Rook("black", row, col))
+                elif char == "q":
+                    self.tiles[row][col] = Tile(row, col, Queen("black", row, col))
+                elif char == "k":
+                    self.tiles[row][col] = Tile(row, col, King("black", row, col))
+                    if self.tiles[row][col].piece.color == "black":
+                        self.black_k = self.tiles[row][col].piece
+                elif char == "P":
+                    self.tiles[row][col] = Tile(row, col, Pawn("white", row, col))
+                elif char == "N":
+                    self.tiles[row][col] = Tile(row, col, Knight("white", row, col))
+                elif char == "B":
+                    self.tiles[row][col] = Tile(row, col, Bishop("white", row, col))
+                elif char == "R":
+                    self.tiles[row][col] = Tile(row, col, Rook("white", row, col))
+                elif char == "Q":
+                    self.tiles[row][col] = Tile(row, col, Queen("white", row, col))
+                elif char == "K":
+                    self.tiles[row][col] = Tile(row, col, King("white", row, col))
+                    if self.tiles[row][col].piece.color == "white":
+                        self.white_k = self.tiles[row][col].piece
+
+                else: # empty space
+                    self.tiles[row][col] = Tile(row, col)
+
+                col += 1
+
+        # Set the turn
+        self.set_turn(1 if fen_parts[1] == "w" else 0)
+
+        # Handle castling rights
+        self.white_k.cant_castle_right()
+        self.white_k.cant_castle_left()
+        self.black_k.cant_castle_right()
+        self.black_k.cant_castle_left()
+
+        if fen_parts[2] != "-":
+            for char in fen_parts[2]:
+                if char == "K":
+                    self.white_k.castle_right = True
+                elif char == "Q":
+                    self.white_k.castle_left = True
+                elif char == "k":
+                    self.black_k.castle_right = True
+                elif char == "q":
+                    self.black_k.castle_left = True
+
+        # Set the en passant square
+        if fen_parts[3] != "-":
+            col = ord(fen_parts[3][0]) - ord("a")
+            row = (8 - int(fen_parts[3][1]))  
+            self.tiles[row][col].set_en_passant(1 if self.turn == "black" else -1)
+
+        # Set the move count and halfmove clock
+        self.move_count = int(fen_parts[5])
+

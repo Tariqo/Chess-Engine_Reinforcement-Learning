@@ -1,13 +1,11 @@
-
-#"P6050 P1020 P6343 P1727 P6545 P1434 P6151 R0010 P6252 P2030 R7060 P1232 P6646 P1626 N7657 P3040 P4636 P4051 P5242 P1525 N5776 P2737 P3627 P2636 P5040 N0120 K7465 R1000 R6061 P1333 N7657 R0010 Q7363 P3747 Q6352 N0627 B7254 P3243 Q5253 B0523 P4030 B2350 Q5373 R0706 B7566 R0607 R7776 B0213 P4233 N2012 N7150 N1224 B6644 R0706 K6575 P3445 B5445 N2445 R7677 P2535 P3020 R0607 R7776 R0717 P6454 B1322 P3323 B2213 B4466 Q0300 B6622 N2706 K7574 P1131 K7465 P3141 K6574 Q0022 R6164 B1302 P5444 P3544 R7677 N0625 N5745 R1014 N4533 P4353 P2010 B0224 N5031 R1707 N3143 R1413 N4335 K0403 N3556 R0727 Q7363 R2717 N5637 P5364 N3314 P4757 K7464 R1714 P2314 K0312 P1000 K1221 K6473 R1353 K7374 P4454 Q6364 R5333 Q6455 Q2231 Q0060"
-
+import os.path
+import sqlite3
+import pygame.freetype
 from game_vars import *
 from board import *
 from animation import Animate
 from q_learning_engine import DQNEngine
 from engine import Engine
-import time
-import os.path
 
 class Game:
     def __init__(self, screen, fen = ""):
@@ -24,16 +22,23 @@ class Game:
         self.screen = screen
         self.animate = Animate()
         self.engine = DQNEngine("white")
+        # self.engine2 = DQNEngine("black")
         self.engine2 = Engine("black")
         self.move_log = ""
+        self.visual_move_log = ""
+        self.winner = ""
         self.general_move_cnt = 0
-        self.simulation_string = "P6151 P1020 P6040 P1636 P6343 P1525 N7152 R0010 P6656 R1000 B7236 P1737 P6242 K0415 B3663 P1121 P6454 P1222 P5141 P2232 K7464 Q0304 N5231 P2535 B6352 B0211 P4030 P3747 N7655 P2031 R7050 Q0402 P4332 N0625 B5234 B1122 Q7374 P3142 R5070 P4757 B7557 B2240 Q7475 B4051 N5576 N0120 P3222 R0001 P5646 R0747 B3425 R0100 B2507 Q0211 P5444 R0010 Q7572 K1506 Q7254 B5140 P3021 N2041 Q5436 K0607 R7050 R4746 N7655 B4031 Q3646 P3545 N5543 B0516 R7770 K0717 Q4626 K1726 R5055 Q1120 R5553 B1625 P2110 B2536 R5350 B3625 K6473 P4252 P2213 K2617 R5030 N4153 N4322 P4555 P1000 B2507 R7060 N5365 K7374 N6557 Q0002 B0716 N2201 P5262 N0120 B3122 Q0211 K1706 N2041 K0605 Q1112 K0515 R3036 P1424 R3635 P2435 Q1203 P3545 R6020 B1605 P6747 K1526 Q0336 N5736 R2022 B0523 P4434 P6272 R2272 B2334 N4122 K2616 R7262 P5565 K7465 P4555 R6252 B3425 K6575 K1626 R5242 K2617 N2210 B2552 R4243 N3615 P1303 P5565 R4341 K1726 R4151 K2627 Q0321 B5225 R5161 N1523 Q2132 K2717 R6151 K1706 Q3236 K0617 R5111 B2516 Q3663 N2335 R1141 N3547 Q6364 B1605 R4161 K1706 Q6473 B0527 Q7364 N4766 N1002 N6654 K7565 N5435 K6566 K0617 R6160 B2772 Q6475 K1726 Q7520 K2636 Q2023 N3554 K6657 K3637 Q2345 B7263 Q4575 K3727 N0223 B6341 R6040 B4174 R4060 N5462 R6010 N6250 R1012 B7447 R1222 K2737 R2220 K3726 N2304 K2637 Q7545 N5031 Q4567 N3150 Q6761 K3736 Q6171 K3637 Q7151 N5031 Q5133 B4736 N0416"
-        self.moves = self.simulation_string.split(" ")
+        self.board_history = []
+        self.moves = []
         self.log_file = os.path.isfile("logs/move_log.out")
         self.current_piece_legal_moves = []
+        self.db_connector = None
+        self.game_over = False
+        self.create_db()
+
                                        
     def piece_selected(self):
-        return self.selected_piece != None
+        return self.selected_piece is not None
     
     def _white_to_move(self):
         return self.current_player == 1
@@ -68,46 +73,67 @@ class Game:
         elif (self.move_count_b % 2 == 0 and self.move_count_w % 2 == 1) or (self.move_count_b % 2 == 1 and self.move_count_w % 2 == 0):
             self.board.reset_en_passant_board(-1)
 
-        
-        if self.board.check_for_game_end():
+        game_end, result = self.board.check_for_game_end()
+        if game_end:
+            self.winner = result
+            self.game_over = True
+            self.close_db()
+            self.update_screen()
             self.save_model()
         self.current_player = 1 if self.current_player == 2 else 2
         self.board.set_turn(self.current_player)
-        print(self.board.save_to_FEN())
     def make_engine_play(self):
-        # time.sleep(0.9)
-        if self.current_player == 1:
-            if not self.engine_move():
-                print("Motherfucking white made an illegal move")
-            else:
-                self.update_screen()
-                self.update_game()
-        if self.current_player == 2:
-            if not self.engine2_move():
-                print("Motherfucking black made an illegal move")
-            else:
-                self.update_screen()
-                self.update_game()
+        if not self.game_over:
+            if self.current_player == 1:
+                if not self.engine_move():
+                    print("White made an illegal move")
+                else:
+                    self.update_screen()
+                    self.update_game()
+            if self.current_player == 2:
+                if not self.engine2_move():
+                    print("Black made an illegal move")
+                else:
+                    self.update_screen()
+                    self.update_game()
 
     def make_engine_play_black(self):
-        if self.current_player == 2:
-            if not self.engine2_move():
-                print("Motherfucking black made an illegal move")
-            else:
-                self.update_screen()
-                self.update_game()
-    
-    def simulate_game(self):
-        if self.general_move_cnt < len(self.moves):
+        if not self.game_over:
+            if self.current_player == 2:
+                if not self.engine2_move():
+                    print("Black made an illegal move")
+                else:
+                    self.update_screen()
+                    self.update_game()
+        
+    def simulate_game(self, command):
+        if self.general_move_cnt < len(self.moves) and command == 'n':
+            self.board_history.append(self.board.save_to_FEN())
             mv = self.moves[self.general_move_cnt]
-            # print(mv)
+            move_log_string = ''
+            for i in self.board.tiles:
+                for j in i:
+                    if not j.has_piece():
+                        move_log_string += "--- "
+                    else:
+                        name = j.piece.name[0].upper() if j.piece.name != 'knight' else 'N'
+                        move_log_string += j.piece.color[0].upper() + "-" + name + " "
+                move_log_string+= "\n"
+            move_log_string+= "------------------------------------------------\n"
+            # print(move_log_string)
             self.selected_piece = self.board.tiles[int(mv[1])][int(mv[2])].piece 
             self.move_piece(int(mv[3]),int(mv[4]))
             self.update_screen()
             self.update_game()
             self.general_move_cnt += 1
-        else:
-            self.make_engine_play()
+        elif self.general_move_cnt > 0 and command == 'b':
+            self.general_move_cnt -= 1
+            fen = self.board_history.pop()
+            self.board = Board(fen=fen)
+            self.current_player = 1 if self.board.turn == 'white' else 2
+            self.update_screen()
+
+
     def make_first_move(self):
         self.engine_move()
         self.update_game()
@@ -128,8 +154,11 @@ class Game:
         return self.move_piece(move[0],move[1])
 
     def update_screen(self):
+        self._draw_time_control(self.screen)
         self._draw_board(self.screen)
         self._draw_pieces(self.screen)
+        if self.game_over:
+            self._draw_game_end(self.winner)
 
     
     def move_piece(self, pr,pf):
@@ -146,20 +175,22 @@ class Game:
                         name = j.piece.name[0].upper() if j.piece.name != 'knight' else 'N'
                         move_log_string += j.piece.color[0].upper() + "-" + name + " "
                 move_log_string+= "\n"
-            move_log_string+= "------------------------------------------------\n"    
+            move_log_string+= "------------------------------------------------\n"
+            self.visual_move_log += move_log_string    
             self.log_to_file(move_log_string)
             self.add_move_to_move_log(self.selected_piece.name, r,f,pr,pf)
 
         return piece_moved
 
     def log_to_file(self, move_log_string):
-        if(self.log_file):
-            with open("logs/move_log.out", "a") as file: 
-                file.write(move_log_string)
+        pass
+        # if(self.log_file):
+        #     with open("logs/move_log.out", "a") as file: 
+        #         file.write(move_log_string)
 
-        else:
-            with open("logs/move_log.out", "w") as file: 
-                file.write(move_log_string)
+        # else:
+        #     with open("logs/move_log.out", "w") as file: 
+        #         file.write(move_log_string)
 
 
 
@@ -184,8 +215,8 @@ class Game:
         # new_string = p_name + str(r) + str(f) + concat_string + chr(97 + pf) + str(ROWS - pr) + " "
         self.move_log += new_string
 
-        with open("logs/ghistory.out", "a") as file:
-            file.write(new_string)
+        # with open("logs/ghistory.out", "a") as file:
+        #     file.write(new_string)
 
 
     def _draw_highlights(self, display):
@@ -251,12 +282,75 @@ class Game:
                     lbl_pos = (col * TSIZE + TSIZE - 20, HEIGHT - 20)
                     # blit
                     display.blit(lbl, lbl_pos)
-        
-    def _castle_left(self):
-        pass
     
-    def _castle_right(self):
-        pass
+    def _draw_game_end(self,verdict = ''):
+        font = pygame.font.SysFont('monospace', 26, bold=True)
+
+        if self.winner != 'Stalemate':
+            verdict = 'Checkmate' 
+            winner = self.winner + ' wins'
+        else:
+            winner = ''
+    
+        label_s = 100
+        label_w = W_WIDTH - WIDTH
+        label = font.render(verdict, True, (255, 255, 255))
+        label_rect = label.get_rect()
+        label_rect.center = (label_w // 2, label_s//2 )
+        
+        font_under = pygame.font.SysFont('monospace', 18, bold=True)
+        label_under = font_under.render(winner, True, (255, 255, 255))
+        label_under_rect = label_under.get_rect()
+        label_under_rect.center = (label_w // 2, label_s//2 + 26 )
+
+        surface = pygame.Surface((label_w, label_s), flags=pygame.SRCALPHA)
+        surface.set_alpha(300)
+        # surface.fill((0, 0, 0))
+        surface.blit(label, label_rect)
+        surface.blit(label_under, label_under_rect)
+
+        self.screen.blit(surface, (WIDTH, (HEIGHT // 2) - (label_s//2)))
+
+        pygame.display.flip()
+
+    def _draw_time_control(self, display):
+        # Define the default values
+        font = pygame.font.SysFont('monospace', 26, bold=True)
+
+        time = "00:00"
+        bg_color = '#2d2d2d'
+        boarder = 1
+        margin = 5
+        padding = 120
+        
+        alpha = 300
+        if self.game_over:
+            alpha = 80
+
+        line_w = WIDTH + margin
+        # Create Big Box
+        box_rect = pygame.Rect(WIDTH, 0, W_WIDTH - WIDTH, HEIGHT)
+        # Draw the box with the appropriate color
+        pygame.draw.rect(display, bg_color, box_rect)
+        if not self.game_over:
+            pygame.draw.line(display, 'gray', (line_w,HEIGHT//2),(W_WIDTH - margin,HEIGHT//2),boarder)
+            
+        # Create surface for time label above line
+        time_label_top = font.render(time, True, (255, 255, 255))
+        time_label_top.set_alpha(alpha)
+        time_label_top_rect = time_label_top.get_rect()
+        time_label_top_rect.center = ((W_WIDTH + WIDTH + margin) // 2, (HEIGHT // 2 ) - padding)
+        
+        # Create surface for time label below line
+        time_label_bottom = font.render(time, True, (255, 255, 255))
+        time_label_bottom.set_alpha(alpha)
+        time_label_bottom_rect = time_label_bottom.get_rect()
+        time_label_bottom_rect.center = ((W_WIDTH + WIDTH + margin) // 2, (HEIGHT // 2 ) + padding)
+
+        # Draw the time labels above and below the line
+        display.blit(time_label_top, time_label_top_rect)
+        display.blit(time_label_bottom, time_label_bottom_rect)
+    
 
     def _draw_pieces(self, display):
         for row in range(ROWS):
@@ -273,31 +367,62 @@ class Game:
     
     def save_model(self):
         self.engine.save_model('QDN')
-        with open("logs/ghistory.out", "a") as file:
-            file.write("\n")
+        # self.engine2.save_model('QDNB')
         exit()
-
+        # with open("logs/ghistory.out", "a") as file:
+        #     file.write("\n")
     
     def load_model(self):
         try:
             self.engine.load_model('QDN')
+            # self.engine2.load_model('QDNB')
         except IOError:
-            print("Q-table file not found. Starting with an empty Q-table.")
-
-    def save_q_table_after_game(self):
-        self.engine.save_q_table('q_table.pickle')
-        with open("logs/ghistory.out", "a") as file:
-            file.write("\n")
-        exit()
+            print("Modal not found. Starting with an empty Modal.")
 
     
-    def load_q_table_before_game(self):
-        try:
-            self.engine.load_q_table('q_table.pickle')
-        except FileNotFoundError:
-            print("Q-table file not found. Starting with an empty Q-table.")
+    def create_db(self, db='game_history.db'):
+        # Connect to the database or create it if it doesn't exist
+        connector = sqlite3.connect('databases/' + db)
+        self.db_connector = connector
 
+        # Create the table if it doesn't exist
+        connector.execute('''CREATE TABLE IF NOT EXISTS chess_games (
+                    game_id INTEGER PRIMARY KEY,
+                    game_move_history TEXT,
+                    visual_game_log TEXT,
+                    winner TEXT,
+                    move_count INTEGER,
+                    FEN TEXT,
+                    game_date_time TEXT
+                            );''')
+        # Commit the changes
+        connector.commit()
 
+    def close_db(self):
+        self.db_add_row()
+        self.db_connector.close()        
+    
+    def db_add_row(self):
+        c = self.db_connector.cursor()
+
+        c.execute("SELECT MAX(game_id) FROM chess_games")
+        max_game_id = c.fetchone()[0]
+        if max_game_id is None:
+            max_game_id = 0
+        
+        game_id = max_game_id + 1
+        game_move_history = self.move_log
+        visual_game_log = self.visual_move_log
+        winner = self.winner
+        move_count = self.board.move_count
+        FEN_ = self.board.save_to_FEN()
+        import datetime
+        now = datetime.datetime.now()
+        game_date_ime =  now.strftime("%Y-%m-%d_%H:%M:%S")  
+
+        self.db_connector.execute("INSERT INTO chess_games (game_id, game_move_history, visual_game_log, winner, move_count, FEN, game_date_time) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                (game_id, game_move_history,visual_game_log, winner, move_count, FEN_, game_date_ime) )
+        self.db_connector.commit()
 
    
 

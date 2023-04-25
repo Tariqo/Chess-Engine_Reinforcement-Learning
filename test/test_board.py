@@ -18,34 +18,37 @@ class TestBoard(unittest.TestCase):
 
     def test_move_piece(self):
         board = Board()
+        board.move_piece(board.tiles[6][0].piece,board.tiles[5][0])  
+        self.assertIsNone(board.tiles[6][0].piece)
+        self.assertIsInstance(board.tiles[5][0].piece, Pawn)
+
         board.move_piece(board.tiles[1][0].piece,board.tiles[2][0])  
         self.assertIsNone(board.tiles[1][0].piece)
         self.assertIsInstance(board.tiles[2][0].piece, Pawn)
+        
+        board.move_piece(board.tiles[6][1].piece,board.tiles[5][1]) 
+        self.assertIsNone(board.tiles[6][1].piece)
+        self.assertIsInstance(board.tiles[5][1].piece, Pawn)
 
         board.move_piece(board.tiles[1][1].piece,board.tiles[2][1]) 
         self.assertIsNone(board.tiles[1][1].piece)
         self.assertIsInstance(board.tiles[2][1].piece, Pawn)
+        
+        board.move_piece(board.tiles[6][2].piece,board.tiles[5][2]) 
+        self.assertIsNone(board.tiles[6][2].piece)
+        self.assertIsInstance(board.tiles[5][2].piece, Pawn)
 
         board.move_piece(board.tiles[1][2].piece,board.tiles[2][2])
         self.assertIsNone(board.tiles[1][2].piece)
         self.assertIsInstance(board.tiles[2][2].piece, Pawn)
 
-        board.move_piece(board.tiles[6][0].piece,board.tiles[5][0])  
-        self.assertIsNone(board.tiles[6][0].piece)
-        self.assertIsInstance(board.tiles[5][0].piece, Pawn)
         
-        board.move_piece(board.tiles[6][1].piece,board.tiles[5][1]) 
-        self.assertIsNone(board.tiles[6][1].piece)
-        self.assertIsInstance(board.tiles[5][1].piece, Pawn)
         
-        board.move_piece(board.tiles[6][2].piece,board.tiles[5][2]) 
-        self.assertIsNone(board.tiles[6][2].piece)
-        self.assertIsInstance(board.tiles[5][2].piece, Pawn)
         
     def test_move_piece_en_passant(self):
         board = Board()
-        board.move_piece(board.tiles[6][4].piece,board.tiles[4][4]) #move white pawn two squares 
-        board.move_piece(board.tiles[4][4].piece,board.tiles[3][4]) #move white pawn one more square
+        board.move_piece(board.tiles[6][4].piece,board.tiles[4][4], True) #move white pawn two squares 
+        board.move_piece(board.tiles[4][4].piece,board.tiles[3][4], True) #move white pawn one more square
         board.move_piece(board.tiles[1][3].piece,board.tiles[3][3]) #move black pawn 
 
 
@@ -56,7 +59,8 @@ class TestBoard(unittest.TestCase):
         board = Board(testing=True)
         pawn = Pawn("white", 1,0)
         board.tiles[1][0].set_piece(pawn)
-        board.move_piece(pawn, board.tiles[0][0])
+        # self.assertTrue(False)
+        self.assertTrue(board.move_piece(pawn, board.tiles[0][0]))
         self.assertIsInstance(board.tiles[0][0].piece, Queen)
 
     def test_move_piece_castling_left(self):
@@ -79,6 +83,7 @@ class TestBoard(unittest.TestCase):
         board.tiles[7][2].set_piece(None)
         board.tiles[7][1].set_piece(None)
         self.assertTrue(board.move_piece(board.tiles[7][0].piece, board.tiles[7][2])) 
+        self.assertTrue(board.move_piece(board.tiles[1][0].piece, board.tiles[3][0])) 
         self.assertTrue(board.move_piece(board.tiles[7][2].piece, board.tiles[7][0])) 
         self.assertFalse(board.move_piece(board.white_k, board.tiles[7][2])) 
 
@@ -103,6 +108,7 @@ class TestBoard(unittest.TestCase):
         board.tiles[7][5].set_piece(None)
         board.tiles[7][6].set_piece(None)
         self.assertTrue(board.move_piece(board.tiles[7][7].piece, board.tiles[7][5])) 
+        self.assertTrue(board.move_piece(board.tiles[1][0].piece, board.tiles[3][0])) 
         self.assertTrue(board.move_piece(board.tiles[7][5].piece, board.tiles[7][7])) 
         self.assertFalse(board.move_piece(board.white_k, board.tiles[7][2])) #cant castle left with piece in between
 

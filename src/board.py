@@ -1,6 +1,7 @@
 import os
 import copy
 import pygame
+import chess
 from piece import Piece, Pawn, King, Queen, Rook, Bishop, Knight
 from game_vars import *
 from tile import Tile
@@ -11,7 +12,7 @@ class Board:
 
     def __init__(self, testing = False, fen=""):
         self.move_count = 0
-        self.turn = ""
+        self.turn = "white"
         if fen:
             self.tiles = [[0, 0, 0, 0, 0, 0, 0, 0] for col in range(COLS)]
             self.white_k = None
@@ -127,35 +128,37 @@ class Board:
     
     def check_for_game_end(self):
         self.check_for_check()
-        if self.check_for_checkmate():
-            return True
+        checkMate, winner = self.check_for_checkmate()
+        if checkMate:
+            return True, winner
         else:
-            return self.check_for_stalemate()
+            stale_mate = self.check_for_stalemate()
+            return stale_mate, 'Stalemate' if stale_mate else ''
         
 
     def check_for_checkmate(self,test = False):
         if self.last_move is None:
-            return False
+            return False, ''
         check_mate_color = "white" if self.last_move.color == "black" else "black"
         for rank in self.tiles:
             for tile in rank:
                 if tile.has_piece() and tile.piece.color == check_mate_color:
                     if len(self.piece_legal_moves(tile.piece)) >0:
-                        return False
+                        return False, ''
                     
         if check_mate_color == 'black' and self.black_check:
             if not test:
                 print(self.last_move.color + " wins")
-                with open("logs/winner.out", "a") as file:
-                    file.write(self.last_move.color + " wins\n")
-            return True
+                # with open("logs/winner.out", "a") as file:
+                #     file.write(self.last_move.color + " wins\n")
+            return True, self.last_move.color
         elif check_mate_color == 'white' and self.white_check:
             if not test:        
                 print(self.last_move.color + " wins")
-                with open("logs/winner.out", "a") as file:
-                    file.write(self.last_move.color + " wins\n")
-            return True
-        return False    
+                # with open("logs/winner.out", "a") as file:
+                #     file.write(self.last_move.color + " wins\n")
+            return True, self.last_move.color
+        return False, ''
     
     def check_for_stalemate(self, demo = False):
         remaining_pieces_white = []
@@ -174,16 +177,16 @@ class Board:
                             stale_mate = False
         
         if len(remaining_pieces_black) == len(remaining_pieces_white) and len(remaining_pieces_black) == 1:
-            if demo:
-                with open("logs/winner.out", "a") as file:
-                    file.write("Stalemate\n")
-                    print("stalemate")
+            # if demo:
+                # with open("logs/winner.out", "a") as file:
+                #     file.write("Stalemate\n")
+                    # print("stalemate")
             return True
         if stale_mate:
-            if demo:
-                with open("logs/winner.out", "a") as file:
-                    file.write("Stalemate\n")
-                    print("stalemate")
+            # if not demo:
+            #     with open("logs/winner.out", "a") as file:
+            #         file.write("Stalemate\n")
+            #         print("stalemate")
             return True
         return stale_mate
     
@@ -280,10 +283,19 @@ class Board:
             legal_moves = []
             for mv in approved_moves:
                 #try the move
-                temp_board = self.try_move(piece, self.tiles[mv[0]][mv[1]])
-                temp_king_piece = temp_board.black_k if king_piece.color == 'black' else temp_board.white_k
-                if not temp_board.king_in_check(temp_king_piece):
+                board = chess.Board(self.save_to_FEN())
+                uci = chr(97 + piece.file) + str(ROWS - piece.rank) + chr(97 + mv[1]) + str(ROWS - mv[0])
+                if isinstance(piece, Pawn) and (uci[-1] == '8' or uci[-1] == '1'):
+                    uci += 'q'
+                move = chess.Move.from_uci(uci)
+                if move in board.legal_moves:
                     legal_moves.append(mv)
+
+
+                # temp_board = self.try_move(piece, self.tiles[mv[0]][mv[1]])
+                # temp_king_piece = temp_board.black_k if king_piece.color == 'black' else temp_board.white_k
+                # if not temp_board.king_in_check(temp_king_piece):
+                #     legal_moves.append(mv)
                 # self.undo_move(piece, self.tiles[mv[0]][mv[1]])
             return legal_moves
         else:
@@ -294,7 +306,6 @@ class Board:
         return self.check_black_k_in_check()
         
     def try_move(self, piece: Piece, tile: Tile, who_called = ""):
-            
         temp_piece = copy.deepcopy(piece)
         temp_board = copy.deepcopy(self)
         temp_board.move_piece(temp_piece, temp_board.tiles[tile.row][tile.col], testing=True)
@@ -384,6 +395,7 @@ class Board:
 
             # if not testing:
             #     self.update_attacked_squares(piece.color)
+            self.set_turn(2 if piece.color == 'white'else 1)
             return True
         
         return False
@@ -479,6 +491,7 @@ class Board:
             self.black_attacking_sqrs = attacked_sqrs
         else:
             self.white_attacking_sqrs = attacked_sqrs
+        return attacked_sqrs
     def save_to_FEN(self):
         FEN_str = ""
         for i in self.tiles:
@@ -498,6 +511,7 @@ class Board:
                         FEN_str += str(rank_empties)
     
             FEN_str +='/'
+        FEN_str = FEN_str[:-1]
         FEN_str += " " + self.turn[0] + " "
         if self.white_k.can_castle_left():
             FEN_str += "Q"
@@ -511,10 +525,9 @@ class Board:
                 or self.black_k.can_castle_left() or self.black_k.can_castle_right()):
             FEN_str += "-"
         FEN_str += " "
-        print(self.last_move.name, self.last_move.color, self.last_move.rank - self.last_move.dir, self.last_move.file )
         if self.last_move and isinstance(self.last_move, Pawn) and \
           self.tiles[self.last_move.rank - self.last_move.dir][self.last_move.file].can_en_passant(-self.last_move.dir):
-            FEN_str += chr(97 + self.last_move.file) + str(ROWS - self.last_move.rank ) + " "
+            FEN_str += chr(97 + self.last_move.file) + str((ROWS - self.last_move.rank) + self.last_move.dir  ) + " "
         else:
             FEN_str += "- "
         FEN_str += str((self.move_count + 1) // 2) + " "

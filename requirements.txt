@@ -1,0 +1,7 @@
+chess==1.9.4
+numpy==1.22.3
+pygame==2.1.2
+pygame_menu==4.3.9
+stockfish==3.28.0
+tensorflow==2.12.0
+tensorflow_intel==2.12.0

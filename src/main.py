@@ -12,7 +12,7 @@ from board import *
 
 # set SDL to use the dummy NULL video driver, 
 #   so it doesn't need a windowing system.
-os.environ["SDL_VIDEODRIVER"] = "dummy"
+# os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 import pygame.transform
@@ -30,7 +30,7 @@ class Main:
         self.simulate = False
         self.one_person = False
         self.two_persons = False
-        # self.menu.mainloop(self.game_display)
+        self.menu.mainloop(self.game_display)
 
 
     def run(self):
@@ -39,9 +39,9 @@ class Main:
 
         self.game._draw_board(display)
         self.game._draw_pieces(display)
-        self.game._draw_time_control(display)
+        # self.game._draw_time_control(display)
         self.game.load_model()
-        self._engine_play = True
+        # self._engine_play = True
         # self.simulate= True
         # self.two_persons = True
         # self.one_person = True

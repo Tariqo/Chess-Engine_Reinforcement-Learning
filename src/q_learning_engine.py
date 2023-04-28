@@ -7,7 +7,7 @@ from board import Board
 from stockfish import Stockfish
 
 class DQNEngine:
-    def __init__(self, color, learning_rate=0.001, discount_factor=0.99, exploration_rate=1, exploration_decay=0.9995, use_target_network=True):
+    def __init__(self, color, learning_rate=0.001, discount_factor=0.99, exploration_rate=0.1, exploration_decay=0.9995, use_target_network=True):
         self.color = color
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
@@ -15,7 +15,11 @@ class DQNEngine:
         self.exploration_decay = exploration_decay
         self.use_target_network = use_target_network
         self.piece_values = {'P': 1, 'N': 3, 'B': 3, 'R': 5, 'Q': 9, 'K': 0}
-        self.sfish = Stockfish(path="Stockfish/stockfish-windows-2022-x86-64-avx2")
+        depth = 10
+        if color == 'black':
+            self.exploration_rate = 1
+            self.sfish = Stockfish(path="Stockfish/stockfish-windows-2022-x86-64-avx2")
+            self.sfish.set_elo_rating(2)
 
         self.model = self.build_model()
         if self.use_target_network:
@@ -38,15 +42,18 @@ class DQNEngine:
         state = self._board_to_array(board)
 
         if random.uniform(0, 1) < self.exploration_rate:
-            self.sfish.set_fen_position(board.save_to_FEN())
-            move_str = self.sfish.get_best_move()
-            #uci = chr(97 + piece.file) + str(ROWS - piece.rank) + chr(97 + mv[1]) + str(ROWS - mv[0])
-            pR,pF = (8 - int(move_str[1])) , ord(move_str[0]) - ord('a') 
-            move = (8 - int(move_str[3])) , ord(move_str[2]) - ord('a')
-            # print(move_str, pR,pF ,move)
-            # moves = random.choice(legal_board_moves)
-            # ((pR,pF, move1,move2), move_name) = moves
-            # move = (move1,move2)
+            if self.color == 'black':
+                self.sfish.set_fen_position(board.save_to_FEN())
+                top3_moves = [i['Move'] for i in self.sfish.get_top_moves(3)]
+                move_str = random.choice(top3_moves)
+                #uci = chr(97 + piece.file) + str(ROWS - piece.rank) + chr(97 + mv[1]) + str(ROWS - mv[0])
+                pR,pF = (8 - int(move_str[1])) , ord(move_str[0]) - ord('a') 
+                move = (8 - int(move_str[3])) , ord(move_str[2]) - ord('a')
+            else:
+                # print(move_str, pR,pF ,move)
+                moves = random.choice(legal_board_moves)
+                ((pR,pF, move1,move2), move_name) = moves
+                move = (move1,move2)
         else:
             q_values = self.model.predict(np.array([state]))
             q_values = q_values.reshape(-1)

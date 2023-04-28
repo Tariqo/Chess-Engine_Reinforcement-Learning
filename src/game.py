@@ -21,9 +21,10 @@ class Game:
         self.move_count_b = 0
         self.screen = screen
         self.animate = Animate()
+        # self.engine = Engine("white")
         self.engine = DQNEngine("white")
-        # self.engine2 = DQNEngine("black")
-        self.engine2 = Engine("black")
+        self.engine2 = DQNEngine("black")
+        # self.engine2 = Engine("black")
         self.move_log = ""
         self.visual_move_log = ""
         self.winner = ""
@@ -154,7 +155,7 @@ class Game:
         return self.move_piece(move[0],move[1])
 
     def update_screen(self):
-        self._draw_time_control(self.screen)
+        # self._draw_time_control(self.screen)
         self._draw_board(self.screen)
         self._draw_pieces(self.screen)
         if self.game_over:

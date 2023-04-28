@@ -149,14 +149,14 @@ class Board:
         if check_mate_color == 'black' and self.black_check:
             if not test:
                 print(self.last_move.color + " wins")
-                # with open("logs/winner.out", "a") as file:
-                #     file.write(self.last_move.color + " wins\n")
+                with open("logs/winner.out", "a") as file:
+                    file.write(self.last_move.color + " wins\n")
             return True, self.last_move.color
         elif check_mate_color == 'white' and self.white_check:
             if not test:        
                 print(self.last_move.color + " wins")
-                # with open("logs/winner.out", "a") as file:
-                #     file.write(self.last_move.color + " wins\n")
+                with open("logs/winner.out", "a") as file:
+                    file.write(self.last_move.color + " wins\n")
             return True, self.last_move.color
         return False, ''
     
@@ -178,15 +178,15 @@ class Board:
         
         if len(remaining_pieces_black) == len(remaining_pieces_white) and len(remaining_pieces_black) == 1:
             # if demo:
-                # with open("logs/winner.out", "a") as file:
-                #     file.write("Stalemate\n")
-                    # print("stalemate")
+            with open("logs/winner.out", "a") as file:
+                file.write("Stalemate\n")
+                print("stalemate")
             return True
         if stale_mate:
             # if not demo:
-            #     with open("logs/winner.out", "a") as file:
-            #         file.write("Stalemate\n")
-            #         print("stalemate")
+            with open("logs/winner.out", "a") as file:
+                file.write("Stalemate\n")
+                print("stalemate")
             return True
         return stale_mate
     

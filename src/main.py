@@ -24,7 +24,6 @@ class Main:
         self.screen = pygame.display.set_mode( (W_WIDTH, HEIGHT) )
         pygame.display.set_caption('Chess')
         self.game = Game(self.screen)
-        pygame.display.set_caption("Menu")
         self.menu = self._create_menu()
         self._engine_play = False
         self.simulate = False
@@ -39,7 +38,7 @@ class Main:
 
         self.game._draw_board(display)
         self.game._draw_pieces(display)
-        # self.game._draw_time_control(display)
+        self.game._draw_time_control(display)
         self.game.load_model()
         # self._engine_play = True
         # self.simulate= True
@@ -88,7 +87,8 @@ class Main:
                         self.game.simulate_game('n')
 
         else:
-            for event in pygame.event.get():
+            events = pygame.event.get()
+            for event in events:
                 if event.type == QUIT or (
                     event.type == KEYDOWN and (
                     event.key == K_ESCAPE or
@@ -162,10 +162,25 @@ class Main:
         self._engine_play = True
         self.run()
     def simulate_play(self):
-        self.simulate = True
-        self.open_table_window()
-        self.show_instructions()
-        self.run()
+        if self.game.can_sim():
+            self.open_table_window()
+            if self.simulate:
+                self.show_instructions()
+                self.run()
+        else:
+            self.run_sim_err()
+    
+    def run_sim_err(self):
+        root = tk.Tk()
+        root.title("Game database")
+        no_games = tk.Label(root, text='Database has no games', font=('Times New Roman', 20))
+
+        no_games.pack(side='top', pady=15, padx=15)
+
+        button1 = tk.Button(text="Exit",command=lambda: root.destroy())
+        button1.pack(pady=20)
+        root.mainloop()
+
 
     def view(self, tree: ttk.Treeview, root, play_B):
         con1 = self.game.db_connector
@@ -175,7 +190,6 @@ class Main:
         cur1.execute("SELECT game_id, winner, move_count, game_date_time FROM chess_games")
 
         rows = cur1.fetchall()
-
         for row in rows:
             tree.insert("", tk.END, values=row)
 
@@ -191,23 +205,28 @@ class Main:
 
         root = tk.Tk()
         root.title("Game database")
-
-        tree = ttk.Treeview(root, column=("c1", "c2", "c3","c4"), show='headings')
+        root.protocol("WM_DELETE_WINDOW",lambda: None)
+        tree = ttk.Treeview(root, column=("c1", "c2", "c3","c4"), show='headings', selectmode='browse')
         headers = ['Game ID', 'Winner', 'Move Count', 'Date and Time']
 
         for c,header in enumerate(headers, start=1):
             tree.column("#" + str(c), anchor=tk.CENTER)
             tree.heading("#" + str(c), text=header)
+
         tree.pack()
-            
-        button2 = tk.Button(text="Replay selected",command=lambda: root.destroy())
+        def start_sim():
+            self.simulate = True
+            root.destroy()
+
+        button2 = tk.Button(text="Replay selected",command=start_sim)
         button1 = tk.Button(text="Refresh data", command=self.view(tree, root, button2))
+        button3 = tk.Button(text="Return to menu",command=lambda: root.destroy())
 
         button2["state"] = 'disabled'
 
         button1.pack(pady=10)
-        button2.pack(pady=20)
-
+        button2.pack()
+        button3.pack()
         root.mainloop()
 
     def load_game(self, game_id):
@@ -223,7 +242,6 @@ class Main:
         HEIGHT = 500
         WIDTH = 800
 
-        bottom_bg = ''
         top_bg = 'white'
 
         ws = tk.Tk()
@@ -280,10 +298,9 @@ class Main:
     def _create_menu(self):
         menu = pygame_menu.Menu('', W_WIDTH, HEIGHT, theme=pygame_menu.themes.THEME_DARK)
         menu.add.button('Engine Play', self.engine_play)
-        menu.add.button('Simulate last game', self.simulate_play)
+        menu.add.button('Simulate Past Game', self.simulate_play)
         menu.add.button('Play Normal', self.one_play)
-        menu.add.button('Play both', self.two_play)
-        menu.add.button('Quit', pygame_menu.events.EXIT)
+        menu.add.button('Multiplayer', self.two_play)
         return menu
 
 import logging

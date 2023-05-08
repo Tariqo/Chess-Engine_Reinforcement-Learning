@@ -1,6 +1,7 @@
 import os.path
 import sqlite3
 import pygame.freetype
+import math
 from game_vars import *
 from board import *
 from animation import Animate
@@ -155,7 +156,7 @@ class Game:
         return self.move_piece(move[0],move[1])
 
     def update_screen(self):
-        # self._draw_time_control(self.screen)
+        self._draw_time_control(self.screen)
         self._draw_board(self.screen)
         self._draw_pieces(self.screen)
         if self.game_over:
@@ -349,8 +350,8 @@ class Game:
         time_label_bottom_rect.center = ((W_WIDTH + WIDTH + margin) // 2, (HEIGHT // 2 ) + padding)
 
         # Draw the time labels above and below the line
-        display.blit(time_label_top, time_label_top_rect)
-        display.blit(time_label_bottom, time_label_bottom_rect)
+        # display.blit(time_label_top, time_label_top_rect)
+        # display.blit(time_label_bottom, time_label_bottom_rect)
     
 
     def _draw_pieces(self, display):
@@ -365,11 +366,30 @@ class Game:
                     img_center = piece.file * TSIZE + TSIZE // 2, piece.rank * TSIZE + TSIZE // 2
                     img_rect = piece_img.get_rect(center=img_center)
                     display.blit(piece_img,img_rect)
+        self._draw_taken_piece(display)
+
+    def _draw_taken_piece(self, display):
+        piece_w, piece_h = 64,64
+        margin = 5
+        for index, piece in enumerate(self.board.taken_white_pieces):
+            sprite = pygame.image.load(os.path.join(IMAGE_DIR, piece.sprite + '.png'))
+            sprite = pygame.transform.scale(sprite, (piece_w, piece_h))
+            piece_img = sprite
+            img_coord = WIDTH  + ((index % 3) * piece_w) + margin, (math.floor(index / 3) * piece_h)
+            display.blit(piece_img,img_coord)
+
+        for index, piece in enumerate(self.board.taken_black_pieces):
+            sprite = pygame.image.load(os.path.join(IMAGE_DIR, piece.sprite + '.png'))
+            sprite = pygame.transform.scale(sprite, (piece_w, piece_h))
+            piece_img = sprite
+            img_coord = WIDTH  + ((index % 3) * piece_w) + margin, HEIGHT -  (math.ceil((index+1) / 3) * piece_h)
+            display.blit(piece_img,img_coord)
+
     
     def save_model(self):
         self.engine.save_model('QDN')
         # self.engine2.save_model('QDNB')
-        exit()
+        # exit()
         # with open("logs/ghistory.out", "a") as file:
         #     file.write("\n")
     
@@ -425,6 +445,15 @@ class Game:
                                 (game_id, game_move_history,visual_game_log, winner, move_count, FEN_, game_date_ime) )
         self.db_connector.commit()
 
-   
+    def can_sim(self):
+        c = self.db_connector.cursor()        
+        c.execute("SELECT count(game_id) FROM chess_games")
+        game_count = c.fetchone()[0]
+        print(game_count)
+        return game_count is not None and game_count > 0
+    
+
+
+
 
     

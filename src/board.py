@@ -55,6 +55,8 @@ class Board:
         self.move_being_undone = False
         self.black_attacking_sqrs = []
         self.white_attacking_sqrs = []
+        self.taken_white_pieces = []
+        self.taken_black_pieces = []
 
     def set_turn(self, num):
         self.move_count += 1
@@ -212,7 +214,18 @@ class Board:
                             move = (tile.piece.rank, tile.piece.file, mv[0], mv[1])
                             legals.append((move,move_name))
         return legals
-    
+    def get_legal_moves_engine_stables(self,color):
+        legals = []
+        for rank in self.tiles:
+            for tile in rank:
+                if tile.has_piece() and tile.piece.color == color:
+                    org_legals = self.piece_legal_moves(tile.piece)
+                    if len(org_legals) > 0:
+                        for mv in org_legals:
+                            move = (tile.piece.rank, tile.piece.file, mv[0], mv[1])
+                            legals.append(move)
+        return legals
+
     def piece_legal_moves(self,piece : Piece, recursive = False):
         king_piece = self.white_k if piece.color == 'white' else self.black_k
         original_legal_move_list = piece.legal_moves().copy()
@@ -324,6 +337,12 @@ class Board:
         
         if demo or self.move_being_undone or (not demo and not self.move_being_undone and (tile.row,tile.col) in self.piece_legal_moves(piece, testing)) :
             org_tile = self.tiles[piece.rank][piece.file]
+            if tile.has_piece():
+                if tile.piece.color == 'black':
+                    self.taken_black_pieces.append(tile.piece)
+                else:
+                    self.taken_white_pieces.append(tile.piece)
+
 
             if isinstance(piece, Pawn):
                 #En Passant 
@@ -380,6 +399,7 @@ class Board:
                 self.last_move = piece
                 self.update_castling()
                 org_tile.set_piece(None)
+
             elif demo:
                 piece.rank,piece.file = tile.row,tile.col
                 if tile.piece:

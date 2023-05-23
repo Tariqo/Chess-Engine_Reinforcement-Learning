@@ -5,7 +5,6 @@ import math
 from game_vars import *
 from board import *
 from animation import Animate
-from q_learning_engine import DQNEngine
 from q_agent import Q_learning
 from engine import Engine
 

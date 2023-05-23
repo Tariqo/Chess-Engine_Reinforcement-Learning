@@ -481,7 +481,6 @@ class Game:
         c = self.db_connector.cursor()        
         c.execute("SELECT count(game_id) FROM chess_games")
         game_count = c.fetchone()[0]
-        print(game_count)
         return game_count is not None and game_count > 0
     
 

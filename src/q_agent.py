@@ -20,7 +20,7 @@ class Q_learning(object):
         for k in range(iters):
             if k % c == 0:
                 print("iter", k)
-                self.agent.fix_model()
+                self.agent.clone_model()
             self.env.reset()
             move, _ = random.choice(self.env.get_legal_moves_engine('white'))
             self.env.move_piece(self.env.tiles[move[0]][move[1]].piece, self.env.tiles[move[2]][move[3]])
@@ -42,37 +42,25 @@ class Q_learning(object):
         # Play a game of chess
         while not episode_end:
             state = self.env.layer_board
-            explore = np.random.uniform(0, 1) < eps  # determine whether to explore
+            explore = np.random.uniform(0, 1) < eps  
             if explore:
-                try:
-                    self.sfish.set_fen_position(self.env.save_to_FEN())
-                    top3_moves = [i['Move'] for i in self.sfish.get_top_moves(3)]
-                except:
-                    self.agent.save_model('black')
-                move_str = random.choice(top3_moves)
-                pR,pF = (8 - int(move_str[1])) , ord(move_str[0]) - ord('a') 
-                move = (8 - int(move_str[3])) , ord(move_str[2]) - ord('a')
-                # move = self.env.get_random_action()
-                # move_from, move_to = move
-                move_from, move_to = pR * 8 +pF , move[0] * 8 +move[1]
-                move = move_from, move_to
-                # move = self.env.get_random_action()
-                # move_from, move_to = move
+                move = self.env.get_random_action()
+                move_from, move_to = move
 
             else:
                 action_values = self.agent.get_action_values(np.expand_dims(state, axis=0))
                 action_values = np.reshape(np.squeeze(action_values), (64, 64))
-                action_space = self.env.project_legal_moves()  # The environment determines which moves are legal
+                action_space = self.env.project_legal_moves()  
                 action_values = np.multiply(action_values, action_space)
                 move_from = np.argmax(action_values, axis=None) // 64
                 move_to = np.argmax(action_values, axis=None) % 64
                 moves = [(move_f,move_t) for move_f,move_t in self.env.get_legal_moves_engine_stables(self.env.turn) if \
                         ((move_f == move_from) and (move_t == move_to))]
-                if len(moves) == 0:  # If all legal moves have negative action value, explore.
+                if len(moves) == 0:  
                     move = self.env.get_random_action()
                     move_from, move_to = move
                 else:
-                    move = random.choice(moves)  # If there are multiple max-moves, pick a random one.
+                    move = random.choice(moves)  
 
 
             episode_end, reward = self.env.step(move)
@@ -91,7 +79,7 @@ class Q_learning(object):
 
             self.reward_trace.append(reward)
 
-            self.update_agent(turncount)
+            self.refersh_model(turncount)
 
         return self.env
 
@@ -102,24 +90,24 @@ class Q_learning(object):
         eps = max(0.05, 1 / (1 + (k / 250))) if not greedy else 0.
 
         state = self.env.layer_board
-        explore = np.random.uniform(0, 1) < eps  # determine whether to explore
+        explore = np.random.uniform(0, 1) < eps 
         if explore:
             move = self.env.get_random_action()
             move_from, move_to = move
         else:
             vals = self.agent.get_action_values(np.expand_dims(state, axis=0))
             vals = np.reshape(np.squeeze(vals), (64, 64))
-            actions = self.env.project_legal_moves()  # The environment determines which moves are legal
+            actions = self.env.project_legal_moves()  
             vals = np.multiply(vals, actions)
             move_from = np.argmax(vals, axis=None) // 64
             move_to = np.argmax(vals, axis=None) % 64
             moves = [(move_f,move_t) for move_f,move_t in self.env.get_legal_moves_engine_stables(self.env.turn) if \
                     ((move_f == move_from) and (move_t == move_to))]
-            if len(moves) == 0:  # If all legal moves have negative action value, explore.
+            if len(moves) == 0: 
                 move = self.env.get_random_action()
                 move_from, move_to = move
             else:
-                move = random.choice(moves)  # If there are multiple max-moves, pick a random one.
+                move = random.choice(moves)  
 
 
         episode_end, reward = self.env.step(move, True)
@@ -138,11 +126,11 @@ class Q_learning(object):
 
         self.reward_trace.append(reward)
 
-        self.update_agent(turncount)
+        self.refersh_model(turncount)
 
         return move
 
-    def sample_memory(self, turncount):
+    def samp_mem(self, turncount):
         minibatch = []
         memory = self.memory[:-turncount]
         probs = self.sampling_probs[:-turncount]
@@ -153,9 +141,9 @@ class Q_learning(object):
 
         return minibatch, indices
 
-    def update_agent(self, turncount):
+    def refersh_model(self, turncount):
         if turncount < len(self.memory):
-            minibatch, indices = self.sample_memory(turncount)
+            minibatch, indices = self.samp_mem(turncount)
             td_errors = self.agent.network_update(minibatch)
             for n, i in enumerate(indices):
                 self.sampling_probs[i] = np.abs(td_errors[n])
@@ -164,25 +152,25 @@ class Q_learning(object):
         k = 30
         eps = 1
         state = self.env.layer_board
-        explore = np.random.uniform(0, 1) < eps  # determine whether to explore
+        explore = np.random.uniform(0, 1) < eps  
         if explore:
             move = self.env.get_random_action()
             move_from, move_to = move
         else:
-            self.agent.fix_model()
+            self.agent.clone_model()
             vals = self.agent.get_action_values(np.expand_dims(state, axis=0))
             vals = np.reshape(np.squeeze(vals), (64, 64))
-            actions = self.env.project_legal_moves()  # The environment determines which moves are legal
+            actions = self.env.project_legal_moves()  
             vals = np.multiply(vals, actions)
             move_from = np.argmax(vals, axis=None) // 64
             move_to = np.argmax(vals, axis=None) % 64
             moves = [(move_f,move_t) for move_f,move_t in self.env.get_legal_moves_engine_stables(self.env.turn) if \
                     ((move_f == move_from) and (move_t == move_to))]
-            if len(moves) == 0:  # If all legal moves have negative action value, explore.
+            if len(moves) == 0:  
                 move = self.env.get_random_action()
                 move_from, move_to = move
             else:
-                move = random.choice(moves)  # If there are multiple max-moves, pick a random one.
+                move = random.choice(moves) 
         move_from = move[0] // 8, move[0] % 8
         move_to = move[1] // 8, move[1] % 8
         return move_from,move_to
@@ -191,14 +179,14 @@ class Q_learning(object):
 
 class Agent(object):
 
-    def __init__(self, gamma=0.5, lr=0.01, color = ''):
-        self.gamma = gamma
+    def __init__(self, eps=0.5, lr=0.01, color = ''):
+        self.eps = eps
         self.learning_rate = lr
         self.init_network()
         self.weight_memory = []
         self.long_term_mean = []
         self.load_model(color)
-        self.fix_model()
+        self.clone_model()
 
     def init_network(self):
         optimizer = SGD(learning_rate=self.learning_rate, momentum=0.0, decay=0.0, nesterov=False)
@@ -212,11 +200,11 @@ class Agent(object):
         self.model = Model(inputs=[input_layer], outputs=[output_layer])
         self.model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
 
-    def fix_model(self):
+    def clone_model(self):
         optimizer = SGD(learning_rate=self.learning_rate, momentum=0.0, decay=0.0, nesterov=False)
-        self.fixed_model = clone_model(self.model)
-        self.fixed_model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
-        self.fixed_model.set_weights(self.model.get_weights())
+        self.base_model = clone_model(self.model)
+        self.base_model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
+        self.base_model.set_weights(self.model.get_weights())
 
     def network_update(self, minibatch):
         states, moves, rewards, new_states = [], [], [], []
@@ -233,8 +221,8 @@ class Agent(object):
             else:
                 episode_ends.append(1)
         
-        max_q = np.array(rewards) + np.array(episode_ends) * self.gamma * np.max(
-            self.fixed_model.predict(np.stack(new_states, axis=0)), axis=1)
+        max_q = np.array(rewards) + np.array(episode_ends) * self.eps * np.max(
+            self.base_model.predict(np.stack(new_states, axis=0)), axis=1)
 
         state = self.model.predict(np.stack(states, axis=0))  # batch x 64 x 64
 
@@ -249,7 +237,7 @@ class Agent(object):
         return td_errors
 
     def get_action_values(self, state):
-        return self.fixed_model.predict(state) + np.random.randn() * 1e-9
+        return self.base_model.predict(state) + np.random.randn() * 1e-9
 
     def policy_gradient_update(self, states, actions, rewards, action_spaces, actor_critic=False):
         n_steps = len(states)
@@ -261,7 +249,7 @@ class Agent(object):
             if actor_critic:
                 R = rewards[t, action[0] * 64 + action[1]]
             else:
-                R = np.sum([r * self.gamma ** i for i, r in enumerate(rewards[t:])])
+                R = np.sum([r * self.eps ** i for i, r in enumerate(rewards[t:])])
             Returns.append(R)
 
         if not actor_critic:

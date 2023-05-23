@@ -6,6 +6,7 @@ from game_vars import *
 from board import *
 from animation import Animate
 from q_learning_engine import DQNEngine
+from q_agent import Q_learning
 from engine import Engine
 
 class Game:
@@ -22,9 +23,10 @@ class Game:
         self.move_count_b = 0
         self.screen = screen
         self.animate = Animate()
-        # self.engine = Engine("white")
-        self.engine = DQNEngine("white")
-        self.engine2 = DQNEngine("black")
+        self.engine = Engine("white")
+        # self.engine = Q_learning(self.board, 'white')
+        self.engine2 = Q_learning(self.board, 'black')
+        # self.engine2 = DQNEngine("black")
         # self.engine2 = Engine("black")
         self.move_log = ""
         self.visual_move_log = ""
@@ -84,6 +86,22 @@ class Game:
             self.save_model()
         self.current_player = 1 if self.current_player == 2 else 2
         self.board.set_turn(self.current_player)
+    
+    def q_agent_engine_train(self):
+        if not self.game_over:
+            if self.current_player == 1:
+                if not self.engine2_move():
+                    print("White made an illegal move")
+                else:
+                    self.update_screen()
+                    self.update_game()
+            if self.current_player == 2:
+                if not self.engine2.play_game_display(30):
+                    print("Black made an illegal move")
+                else:
+                    self.update_screen()
+                    self.update_game()
+    
     def make_engine_play(self):
         if not self.game_over:
             if self.current_player == 1:
@@ -102,12 +120,18 @@ class Game:
     def make_engine_play_black(self):
         if not self.game_over:
             if self.current_player == 2:
-                if not self.engine2_move():
-                    print("Black made an illegal move")
+                move = self.engine2.play_game_display(30)
+                self.add_move_to_move_log(move[0] // ROWS, move[0] % COLS, move[1] // ROWS, move[1] % COLS)
+                self.update_screen()
+                self.update_game()
+    def make_engine_play_white(self):
+        if not self.game_over:
+            if self.current_player == 1:
+                if not self.engine_move():
+                    print("white made an illegal move")
                 else:
                     self.update_screen()
-                    self.update_game()
-        
+                    self.update_game()        
     def simulate_game(self, command):
         if self.general_move_cnt < len(self.moves) and command == 'n':
             self.board_history.append(self.board.save_to_FEN())
@@ -140,17 +164,21 @@ class Game:
         self.engine_move()
         self.update_game()
 
-    def engine_move(self):
-        piece, move = self.engine.choose_move(self.board)
+    def engine_move(self, color):
+        if color =='white':
+            move_from, move = self.engine.choose_move()
+        else:
+            move_from, move = self.engine2.choose_move()
+        piece = self.board.tiles[move_from[0]][move_from[1]].piece
 
-        log_string = self.engine.color + " to play: " + "\n" + piece.color + " " + piece.name + " from (" + str(piece.rank)  + "," + str(piece.file) + ") to (" + str(move[0]) + "," + str(move[1]) + "): \n"
+        log_string = piece.color + " to play: " + "\n" + piece.color + " " + piece.name + " from (" + str(piece.rank)  + "," + str(piece.file) + ") to (" + str(move[0]) + "," + str(move[1]) + "): \n"
         self.log_to_file(log_string)
         self.selected_piece = piece
         return self.move_piece(move[0],move[1])
 
     def engine2_move(self):
-        piece, move = self.engine2.choose_move(self.board)
-        log_string = self.engine2.color + " to play: " + "\n" + piece.color + " " + piece.name + " from (" + str(piece.rank)  + "," + str(piece.file) + ") to (" + str(move[0]) + "," + str(move[1]) + "): \n"
+        piece, move = self.engine.choose_move(self.board)
+        log_string = self.engine.color + " to play: " + "\n" + piece.color + " " + piece.name + " from (" + str(piece.rank)  + "," + str(piece.file) + ") to (" + str(move[0]) + "," + str(move[1]) + "): \n"
         self.log_to_file(log_string)
         self.selected_piece = piece
         return self.move_piece(move[0],move[1])
@@ -167,7 +195,6 @@ class Game:
         move_log_string = ""
         r,f = self.selected_piece.rank, self.selected_piece.file
         piece_moved = self.board.move_piece(self.selected_piece, self.board.tiles[pr][pf])
-
         if piece_moved:
             for i in self.board.tiles:
                 for j in i:
@@ -180,7 +207,7 @@ class Game:
             move_log_string+= "------------------------------------------------\n"
             self.visual_move_log += move_log_string    
             self.log_to_file(move_log_string)
-            self.add_move_to_move_log(self.selected_piece.name, r,f,pr,pf)
+            self.add_move_to_move_log(r,f,pr,pf, self.selected_piece.name)
 
         return piece_moved
 
@@ -205,11 +232,13 @@ class Game:
     def deselect(self):
         self.selected_piece = None
 
-    def add_move_to_move_log(self, name,r,f, pr,pf ):
+    def add_move_to_move_log(self,r,f, pr,pf , name = ''):
         concat_string = ""
         p_name = name
         if p_name == "knight":
             p_name = "N"
+        elif name == '':
+            p_name = 'H'
         else:
             p_name = str.upper(name[0]) 
 
@@ -387,18 +416,21 @@ class Game:
 
     
     def save_model(self):
-        self.engine.save_model('QDN')
+        self.engine2.agent.save_model('black')
+        pass
+        # self.engine.save_model('QDN')
         # self.engine2.save_model('QDNB')
         # exit()
         # with open("logs/ghistory.out", "a") as file:
         #     file.write("\n")
     
     def load_model(self):
-        try:
-            self.engine.load_model('QDN')
-            # self.engine2.load_model('QDNB')
-        except IOError:
-            print("Modal not found. Starting with an empty Modal.")
+        pass
+        # try:
+        #     self.engine.load_model('QDN')
+        #     # self.engine2.load_model('QDNB')
+        # except IOError:
+        #     print("Modal not found. Starting with an empty Modal.")
 
     
     def create_db(self, db='game_history.db'):

@@ -47,7 +47,7 @@ class Main:
         while running:
             if self._engine_play:
                 if not self.game.game_over:
-                    self.game.make_engine_play()
+                    self.game.q_agent_engine_train()
                 for event in pygame.event.get():
                     if event.type == QUIT or (
                         event.type  == KEYDOWN and (
@@ -156,7 +156,10 @@ class Main:
 
             # if self.game.piece_selected():
             #     self.game.
-
+    def train_engine(self):
+        import subprocess
+        subprocess.Popen(['py', 'train.py'])
+        exit()
         
     def engine_play(self):
         self._engine_play = True
@@ -301,6 +304,7 @@ class Main:
         menu.add.button('Simulate Past Game', self.simulate_play)
         menu.add.button('Play Normal', self.one_play)
         menu.add.button('Multiplayer', self.two_play)
+        menu.add.button('Train Engine', self.train_engine)
         return menu
 
 import logging

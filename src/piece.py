@@ -10,7 +10,6 @@ class Piece:
         self.color_val = 1 if color == "black" else -1
         self.value = value * self.color_val
         self.dir = self.color_val
-        self.old_legals = []
         self.legals = []
         self.moved = False
         self.sprite = sprt_name

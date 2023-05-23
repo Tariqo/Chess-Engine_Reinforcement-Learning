@@ -1,6 +1,6 @@
-import os
+import random
 import copy
-import pygame
+import numpy as np
 import chess
 from piece import Piece, Pawn, King, Queen, Rook, Bishop, Knight
 from game_vars import *
@@ -57,7 +57,10 @@ class Board:
         self.white_attacking_sqrs = []
         self.taken_white_pieces = []
         self.taken_black_pieces = []
-
+        self.piece_numbers = {"p" : 0, "r" : 1, "n" : 2, "b" : 3, "q" : 4, "k" : 5}
+        self.reset_move_space()
+        self._board_to_input()
+        self.layer_board = np.zeros(shape=(8, 8, 8))
     def set_turn(self, num):
         self.move_count += 1
         if num == 1:
@@ -222,7 +225,7 @@ class Board:
                     org_legals = self.piece_legal_moves(tile.piece)
                     if len(org_legals) > 0:
                         for mv in org_legals:
-                            move = (tile.piece.rank, tile.piece.file, mv[0], mv[1])
+                            move = (tile.piece.rank * ROWS+tile.piece.file, mv[0] * ROWS +mv[1])
                             legals.append(move)
         return legals
 
@@ -416,6 +419,18 @@ class Board:
             # if not testing:
             #     self.update_attacked_squares(piece.color)
             self.set_turn(2 if piece.color == 'white'else 1)
+            # log_string = piece.color + " to play: " + "\n" + piece.color + " " + piece.name + " from (" + str(piece.rank)  + "," + str(piece.file) + ") to (" + str(tile.row) + "," + str(tile.col) + ") been undone:\n"
+            # for i in self.tiles:
+            #     for j in i:
+            #         if not j.has_piece():
+            #             log_string += "--- "
+            #         else:
+            #             name = j.piece.name[0].upper() if j.piece.name != 'knight' else 'N'
+            #             log_string += j.piece.color[0].upper() + "-" + name + " "
+            #     log_string+= "\n"
+            # log_string+= "------------------------------------------------\n"
+            # with open("logs/move_try_log.log", "a") as file: 
+            #     file.write(log_string)
             return True
         
         return False
@@ -634,3 +649,76 @@ class Board:
         # Set the move count and halfmove clock
         self.move_count = int(fen_parts[5])
 
+    def reset_move_space(self):
+        self.move_space = np.zeros(shape=(64, 64))
+
+    def _board_to_input(self):
+        self.layer_board = np.zeros(shape=(8, 8, 8))
+        for i in range(64):
+            row = i // 8
+            col = i % 8
+            piece = self.tiles[row][col].piece
+            if piece == None:
+                continue
+            elif piece.color == 'white':
+                sign = 1
+            else:
+                sign = -1
+            layer = self.piece_numbers[piece.name[0].lower() if piece.name != 'knight' else 'n']
+            self.layer_board[layer, row, col] = sign
+
+
+    def step(self, move, display=False):
+        move_from = move[0] // ROWS, move[0] % COLS
+        move_to = move[1] // ROWS, move[1] % COLS
+        piece_balance_before = self.get_material_value()
+        self.move_piece(self.tiles[move_from[0]][move_from[1]].piece,self.tiles[move_to[0]][move_to[1]])
+        self._board_to_input()
+        piece_balance_after = self.get_material_value()
+        game_over, winner = self.check_for_game_end()
+        if not game_over:
+            if not display:
+                opponent_move = self.get_random_action()
+                opponent_move_from = opponent_move[0] // ROWS, opponent_move[0] % COLS
+                opponent_move_to = opponent_move[1] // ROWS, opponent_move[1] % COLS
+                self.move_piece(self.tiles[opponent_move_from[0]][opponent_move_from[1]].piece,self.tiles[opponent_move_to[0]][opponent_move_to[1]])
+                self._board_to_input()
+            capture_reward = piece_balance_after - piece_balance_before
+            game_over, winner = self.check_for_game_end()
+            if not game_over:
+                reward = 0 + capture_reward
+                episode_end = False
+            else:
+                reward = 0 + capture_reward
+                episode_end = True
+        else:
+            capture_reward = piece_balance_after - piece_balance_before
+            reward = 0 + capture_reward
+            episode_end = True
+        if game_over:
+            reward = 0
+            episode_end = True
+        return episode_end, reward
+
+    def get_random_action(self):
+        random_move = random.choice(self.get_legal_moves_engine_stables(self.turn))
+        # move_from = random_move[0] // ROWS, random_move[0] % COLS
+        # move_to = random_move[1] // ROWS, random_move[1] % COLS
+        return random_move
+
+    def project_legal_moves(self):
+        self.move_space = np.zeros(shape=(64, 64))
+        moves =  self.get_legal_moves_engine_stables(self.turn)
+        for move in moves:
+            self.move_space[move[0], move[1]] = 1
+        return self.move_space
+
+    def get_material_value(self):
+        pawns = 1 * np.sum(self.layer_board[0, :, :])
+        rooks = 5 * np.sum(self.layer_board[1, :, :])
+        minor = 3 * np.sum(self.layer_board[2:4, :, :])
+        queen = 9 * np.sum(self.layer_board[4, :, :])
+        return pawns + rooks + minor + queen
+
+    def reset(self):
+        self.board = self.__init__()

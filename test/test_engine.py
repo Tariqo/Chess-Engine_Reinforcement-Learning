@@ -4,28 +4,17 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 's
 
 import unittest
 from board import Board
-from q_learning_engine import DQNEngine
+from q_agent import Q_learning
 
-class TestDQNEngine(unittest.TestCase):
+class TestQ_learning(unittest.TestCase):
 
     def setUp(self):
-        self.engine = DQNEngine('white')
+        self.board = Board()
+        self.engine = Q_learning(self.board, 'black')
 
-    def test_build_model(self):
-        model = self.engine.build_model()
+    def test_init_network(self):
+        model = self.engine.init_network()
         self.assertIsNotNone(model)
-
-    def test_board_to_array(self):
-        board = Board()
-        arr = self.engine._board_to_array(board)
-        self.assertEqual(arr.shape, (8, 8, 6))
-
-    def test_get_reward(self):
-        board = Board()
-        piece = board.tiles[6][4].piece
-        move = (4,4)
-        reward = self.engine._get_reward(board, piece, move)
-        self.assertEqual(reward, 0)
 
     def test_choose_move(self):
         board = Board()
@@ -34,9 +23,9 @@ class TestDQNEngine(unittest.TestCase):
         self.assertIsNotNone(move)
 
     def test_save_load_model(self):
-        self.engine.save_model('test_model.h5')
-        loaded_engine = DQNEngine('white')
-        loaded_engine.load_model('test_model.h5')
+        self.engine.save_model()
+        loaded_engine = Q_learning(self.board,'black')
+        loaded_engine.load_model()
         self.assertIsNotNone(loaded_engine.model)
         self.assertIsNotNone(loaded_engine.target_model)
 

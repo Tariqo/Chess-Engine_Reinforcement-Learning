@@ -3,7 +3,6 @@ from keras.layers import Input, Conv2D, Reshape, Dot
 from keras.optimizers import SGD
 import random
 import numpy as np
-from stockfish import Stockfish
 
 class Q_learning(object):
 
@@ -15,7 +14,8 @@ class Q_learning(object):
         self.reward_trace = []
         self.sampling_probs = []
         self.color = color
-        self.sfish = Stockfish(path="Stockfish/stockfish-windows-2022-x86-64-avx2")
+
+
     def learn(self, iters=100, c=10):
         for k in range(iters):
             if k % c == 0:
@@ -104,17 +104,8 @@ class Q_learning(object):
         state = self.env.layer_board
         explore = np.random.uniform(0, 1) < eps  # determine whether to explore
         if explore:
-            # self.sfish.set_fen_position(self.env.save_to_FEN())
-            # top3_moves = [i['Move'] for i in self.sfish.get_top_moves(3)]
-            # move_str = random.choice(top3_moves)
-            # move_str = self.sfish.get_best_move()
-            # pR,pF = (8 - int(move_str[1])) , ord(move_str[0]) - ord('a') 
-            # move = (8 - int(move_str[3])) , ord(move_str[2]) - ord('a')
             move = self.env.get_random_action()
             move_from, move_to = move
-            # move_from, move_to = pR * 8 +pF , move[0] * 8 +move[1]
-            # move = move_from, move_to
-
         else:
             vals = self.agent.get_action_values(np.expand_dims(state, axis=0))
             vals = np.reshape(np.squeeze(vals), (64, 64))
@@ -294,7 +285,7 @@ class Agent(object):
         else:
             self.model.save('Q_Learn')
 
-    def load_model(self, color):
+    def load_model(self, color = ''):
         try:
             if color == 'black':
                 self.model = load_model('BQ_Learn')

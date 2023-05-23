@@ -313,13 +313,9 @@ main = Main()
 LOG_FILENAME = 'logs/Main_logs.out'
 logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
 
-if os.path.isfile("logs/move_log.out"):
-    os.remove("logs/move_log.out")
 try:
     main.run()
 except Exception as e:
-    # with open("logs/ghistory.out", "a") as file:
-    #     file.write("--Error\n")
     print("main crashed. Error: %s", e)
     logging.exception('Got exception on main handler')    
     exit(-1)

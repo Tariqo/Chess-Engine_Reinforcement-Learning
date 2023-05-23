@@ -167,7 +167,7 @@ class TestBoard(unittest.TestCase):
         self.assertEqual(board.black_k.castle_right, False)
     
     def test_check_check_mate(self):
-        with open("mate_in_one.txt", "r") as file:
+        with open("./test/mate_in_one.txt", "r") as file:
             fen_strs = file.read()
             fen_strs_parts = fen_strs.split(',')
             for i in range(0,len(fen_strs_parts),2):
